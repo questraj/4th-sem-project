@@ -3,11 +3,10 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import Login from '@/pages/auth/Login';
 import Register from '@/pages/auth/Register';
 import Dashboard from '@/pages/dashboard/Dashboard';
+import Analytics from '@/pages/analytics/Analytics'; // Import Analytics
 
-// UPDATED: Removed 'loading' check
 const PrivateRoute = ({ children }) => {
   const { user } = useAuth();
-  // If user exists, render child; otherwise redirect to login
   return user ? children : <Navigate to="/login" replace />;
 };
 
@@ -22,6 +21,13 @@ function App() {
           <Route path="/dashboard" element={
             <PrivateRoute>
               <Dashboard />
+            </PrivateRoute>
+          } />
+
+          {/* New Route */}
+          <Route path="/analytics" element={
+            <PrivateRoute>
+              <Analytics />
             </PrivateRoute>
           } />
           

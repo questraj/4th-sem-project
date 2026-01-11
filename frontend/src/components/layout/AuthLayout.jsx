@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 export default function AuthLayout({ children, title, subtitle }) {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-900 to-indigo-900 p-4">
+    <div className="min-h-screen w-full flex items-center justify-center bg-linear-to-br from-blue-900 to-indigo-900 p-4">
       <div className="w-full max-w-5xl bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row border border-gray-800">
         
         {/* Image */}
