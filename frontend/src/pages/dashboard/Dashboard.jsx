@@ -8,8 +8,7 @@ import CategoryBreakdown from '@/components/dashboard/CategoryBreakdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-// Added 'Pencil' icon for the Edit button
-import { DollarSign, TrendingUp, TrendingDown, Plus, Wallet, Target, Pencil } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Plus, Wallet, Target, Pencil, Calendar } from 'lucide-react';
 import api from '@/api/axios';
 
 const Dashboard = () => {
@@ -18,6 +17,9 @@ const Dashboard = () => {
   const [chartData, setChartData] = useState([]);
   const [recentTxns, setRecentTxns] = useState([]);
   const [categoryBudgets, setCategoryBudgets] = useState({}); 
+  
+  // NEW: Filter State
+  const [period, setPeriod] = useState("Monthly");
 
   // --- MODAL STATES ---
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -29,13 +31,13 @@ const Dashboard = () => {
   // --- DATA FETCHING ---
   const fetchData = useCallback(async () => {
     try {
-      // 1. Get Global Budget
-      const budgetRes = await api.get('/budget/getBudget.php');
+      // 1. Get Budget based on selected Period (Weekly/Monthly/Yearly)
+      const budgetRes = await api.get(`/budget/getBudget.php?type=${period}`);
       const budgetAmount = parseFloat(budgetRes.data.data?.amount || 0);
-      const budgetType = budgetRes.data.data?.type || "Monthly"; 
       
-      // 2. Get Expense Summary
-      const analyticsRes = await api.get('/analytics/getMonthlySummary.php');
+      // 2. Get Expense Summary based on selected Period
+      // We use the new endpoint here
+      const analyticsRes = await api.get(`/analytics/getExpenseSummary.php?period=${period}`);
       let categories = [];
       let totalSpent = 0;
       
@@ -47,13 +49,13 @@ const Dashboard = () => {
         }));
       }
 
-      // 3. Get Recent Transactions
+      // 3. Get Recent Transactions (Keep as is, showing latest activity)
       const txnRes = await api.get('/expense/getRecentExpenses.php');
       if (txnRes.data.status) {
         setRecentTxns(txnRes.data.data);
       }
 
-      // 4. Get Category Specific Budgets
+      // 4. Get Category Limits
       try {
         const catBudgetRes = await api.get('/budget/getCategoryBudgets.php');
         if (catBudgetRes.data.success) {
@@ -67,7 +69,7 @@ const Dashboard = () => {
       setStats({
         totalExpense: totalSpent,
         budget: budgetAmount,
-        budgetType: budgetType,
+        budgetType: period, // Ensure UI reflects the selected period
         remaining: budgetAmount - totalSpent
       });
       setChartData(categories);
@@ -75,13 +77,12 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Failed to fetch dashboard data", error);
     }
-  }, []);
+  }, [period]); // Re-run when 'period' changes
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Logic: Check if budget is greater than 0
   const isBudgetSet = stats.budget > 0;
 
   return (
@@ -89,43 +90,56 @@ const Dashboard = () => {
       <div className="space-y-8 pb-10">
         
         {/* Header Section */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
-            <p className="text-muted-foreground">Overview of your finances</p>
-          </div>
-          
-          <div className="flex flex-wrap gap-2 sm:gap-3">
-            <Button 
-              variant="ghost" 
-              onClick={() => setIsCatBudgetModalOpen(true)} 
-              className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100"
-            >
-              <Target className="mr-2 h-4 w-4" /> Limit Category
-            </Button>
+        <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
+                    <p className="text-muted-foreground">Overview of your finances</p>
+                </div>
+                
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                    <Button 
+                    variant="ghost" 
+                    onClick={() => setIsCatBudgetModalOpen(true)} 
+                    className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100"
+                    >
+                    <Target className="mr-2 h-4 w-4" /> Limit Category
+                    </Button>
 
-            {/* --- THIS IS THE DYNAMIC BUTTON --- */}
-            <Button 
-              variant="outline" 
-              onClick={() => setIsBudgetModalOpen(true)} 
-              className="border-blue-200 text-blue-700 hover:bg-blue-50 bg-white"
-            >
-              {isBudgetSet ? (
-                // If budget exists: Show EDIT
-                <><Pencil className="mr-2 h-4 w-4" /> Edit Total Budget</>
-              ) : (
-                // If no budget: Show SET
-                <><Wallet className="mr-2 h-4 w-4" /> Set Total Budget</>
-              )}
-            </Button>
-            
-            <Button 
-              onClick={() => setIsExpenseModalOpen(true)} 
-              className="bg-blue-600 hover:bg-blue-700 shadow-sm"
-            >
-              <Plus className="mr-2 h-4 w-4" /> Add Expense
-            </Button>
-          </div>
+                    <Button 
+                    variant="outline" 
+                    onClick={() => setIsBudgetModalOpen(true)} 
+                    className="border-blue-200 text-blue-700 hover:bg-blue-50 bg-white"
+                    >
+                    {isBudgetSet ? (
+                        <><Pencil className="mr-2 h-4 w-4" /> Edit {period} Budget</>
+                    ) : (
+                        <><Wallet className="mr-2 h-4 w-4" /> Set {period} Budget</>
+                    )}
+                    </Button>
+                    
+                    <Button 
+                    onClick={() => setIsExpenseModalOpen(true)} 
+                    className="bg-blue-600 hover:bg-blue-700 shadow-sm"
+                    >
+                    <Plus className="mr-2 h-4 w-4" /> Add Expense
+                    </Button>
+                </div>
+            </div>
+
+            {/* --- NEW DROPDOWN FILTER --- */}
+            <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-gray-100 w-fit shadow-sm">
+                <Calendar className="h-4 w-4 text-gray-500 ml-2" />
+                <select 
+                    className="bg-transparent text-sm font-medium text-gray-700 outline-none cursor-pointer pr-2"
+                    value={period}
+                    onChange={(e) => setPeriod(e.target.value)}
+                >
+                    <option value="Weekly">This Week</option>
+                    <option value="Monthly">This Month</option>
+                    <option value="Yearly">This Year</option>
+                </select>
+            </div>
         </div>
 
         {/* Key Metrics Grid */}
@@ -137,14 +151,14 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">NPR {stats.totalExpense.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">This month</p>
+              <p className="text-xs text-muted-foreground mt-1">For {period.toLowerCase()}</p>
             </CardContent>
           </Card>
           
           <Card className="bg-white border-gray-100 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">
-                 {stats.budgetType || "Monthly"} Budget
+                 {period} Budget
               </CardTitle>
               <TrendingUp className="h-4 w-4 text-green-500" />
             </CardHeader>
@@ -166,12 +180,14 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Charts and Lists */}
+        {/* Main Content Grid: 2 Columns */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* LEFT COLUMN */}
           <div className="lg:col-span-2 space-y-6">
              <Card className="border-gray-100 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-gray-800">Spending Distribution</CardTitle>
+                <CardTitle className="text-gray-800">Spending Distribution ({period})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-72 w-full">
@@ -214,21 +230,21 @@ const Dashboard = () => {
             />
           </div>
 
+          {/* RIGHT COLUMN */}
           <div className="lg:col-span-1">
             <RecentTransactions transactions={recentTxns} />
           </div>
+          
         </div>
       </div>
 
       {/* --- POPUP MODALS --- */}
-      
-      {/* 1. Add Budget Modal (With Edit Data Passed) */}
       <AddBudgetModal 
         isOpen={isBudgetModalOpen} 
         onClose={() => setIsBudgetModalOpen(false)} 
         onSuccess={fetchData}
-        currentAmount={stats.budget}     // <--- Pass Amount
-        currentType={stats.budgetType}   // <--- Pass Type
+        currentAmount={stats.budget}
+        currentType={period} // Pass the selected period to pre-fill the modal
       />
 
       <AddExpenseModal 

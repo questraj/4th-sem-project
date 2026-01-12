@@ -11,14 +11,12 @@ import { cn } from "@/lib/utils";
 export default function Sidebar({ className, isCollapsed }) {
   const { logout } = useAuth();
 
- const navItems = [
+const navItems = [
     { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
     { label: "Analytics", icon: PieChart, path: "/analytics" },
-    // NEW ITEM HERE:
-    { label: "Budgets", icon: Wallet, path: "/budgets" }, 
-    // { label: "Expenses", icon: Wallet, path: "/expenses" }, // You can uncomment this if you made that page
+    { label: "Budgets", icon: Wallet, path: "/budgets" }, // Ensure Budgets is here
+    { label: "Expenses", icon: Wallet, path: "/expenses" }, // Ensure Expenses is here and UNCOMMENTED
   ];
-
   return (
     <aside 
       className={cn(

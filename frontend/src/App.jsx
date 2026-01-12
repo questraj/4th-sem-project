@@ -5,6 +5,7 @@ import Register from '@/pages/auth/Register';
 import Dashboard from '@/pages/dashboard/Dashboard';
 import Analytics from '@/pages/analytics/Analytics'; // Import Analytics
 import Budgets from '@/pages/budgets/Budgets'; // Add this import
+import Expenses from '@/pages/expenses/Expenses'; 
 
 const PrivateRoute = ({ children }) => {
   const { user } = useAuth();
@@ -29,6 +30,12 @@ function App() {
           <Route path="/analytics" element={
             <PrivateRoute>
               <Analytics />
+            </PrivateRoute>
+          } />
+           {/* Add this Route */}
+          <Route path="/expenses" element={
+            <PrivateRoute>
+              <Expenses />
             </PrivateRoute>
           } />
            {/* ADD THIS NEW ROUTE */}
