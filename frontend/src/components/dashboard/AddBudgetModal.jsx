@@ -5,13 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import api from "@/api/axios";
 
-// 1. Accept new props: currentAmount and currentType
+// 1. Accept props: currentAmount, currentType
 export default function AddBudgetModal({ isOpen, onClose, onSuccess, currentAmount, currentType }) {
   const [loading, setLoading] = useState(false);
   const [amount, setAmount] = useState("");
   const [type, setType] = useState("Monthly");
 
-  // 2. Pre-fill form when modal opens
+  // 2. Pre-fill the form if data exists
   useEffect(() => {
     if (isOpen) {
       if (currentAmount && currentAmount > 0) {
@@ -34,7 +34,6 @@ export default function AddBudgetModal({ isOpen, onClose, onSuccess, currentAmou
         amount: amount,
         type: type 
       });
-      // Don't clear amount immediately so user sees what they entered if they reopen
       onSuccess();
       onClose();
     } catch (error) {
@@ -50,7 +49,6 @@ export default function AddBudgetModal({ isOpen, onClose, onSuccess, currentAmou
       
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 z-50 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between mb-6">
-          {/* 3. Change Title dynamically */}
           <h2 className="text-xl font-bold">
             {currentAmount > 0 ? "Edit Budget" : "Set Budget"}
           </h2>
@@ -94,7 +92,6 @@ export default function AddBudgetModal({ isOpen, onClose, onSuccess, currentAmou
             </Button>
             <Button type="submit" className="flex-1" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {/* 4. Change Button Text dynamically */}
               {currentAmount > 0 ? "Update Budget" : "Set Budget"}
             </Button>
           </div>

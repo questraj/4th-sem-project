@@ -8,7 +8,7 @@ import CategoryBreakdown from '@/components/dashboard/CategoryBreakdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-// Added 'Pencil' icon to imports
+// Added 'Pencil' icon for the Edit button
 import { DollarSign, TrendingUp, TrendingDown, Plus, Wallet, Target, Pencil } from 'lucide-react';
 import api from '@/api/axios';
 
@@ -60,7 +60,7 @@ const Dashboard = () => {
           setCategoryBudgets(catBudgetRes.data.data);
         }
       } catch (e) {
-        console.warn("Category budgets fetch failed (might be first run)", e);
+        console.warn("Category budgets fetch failed", e);
       }
 
       // 5. Update State
@@ -81,10 +81,9 @@ const Dashboard = () => {
     fetchData();
   }, [fetchData]);
 
-  // Check if a budget is already active
+  // Logic: Check if budget is greater than 0
   const isBudgetSet = stats.budget > 0;
 
-  // --- RENDER ---
   return (
     <DashboardLayout>
       <div className="space-y-8 pb-10">
@@ -105,15 +104,17 @@ const Dashboard = () => {
               <Target className="mr-2 h-4 w-4" /> Limit Category
             </Button>
 
-            {/* DYNAMIC BUTTON: Shows 'Edit' if budget exists, 'Set' if not */}
+            {/* --- THIS IS THE DYNAMIC BUTTON --- */}
             <Button 
               variant="outline" 
               onClick={() => setIsBudgetModalOpen(true)} 
               className="border-blue-200 text-blue-700 hover:bg-blue-50 bg-white"
             >
               {isBudgetSet ? (
+                // If budget exists: Show EDIT
                 <><Pencil className="mr-2 h-4 w-4" /> Edit Total Budget</>
               ) : (
+                // If no budget: Show SET
                 <><Wallet className="mr-2 h-4 w-4" /> Set Total Budget</>
               )}
             </Button>
@@ -142,7 +143,6 @@ const Dashboard = () => {
           
           <Card className="bg-white border-gray-100 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              {/* Show Dynamic Type */}
               <CardTitle className="text-sm font-medium text-gray-600">
                  {stats.budgetType || "Monthly"} Budget
               </CardTitle>
@@ -166,12 +166,9 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Main Content Grid: 2 Columns */}
+        {/* Charts and Lists */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* LEFT COLUMN (2/3 width) */}
           <div className="lg:col-span-2 space-y-6">
-             {/* Spending Distribution Pie Chart */}
              <Card className="border-gray-100 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-gray-800">Spending Distribution</CardTitle>
@@ -211,37 +208,35 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Category Breakdown (Progress Bars) */}
             <CategoryBreakdown 
                categories={chartData} 
                categoryBudgets={categoryBudgets} 
             />
           </div>
 
-          {/* RIGHT COLUMN (1/3 width) */}
           <div className="lg:col-span-1">
             <RecentTransactions transactions={recentTxns} />
           </div>
-          
         </div>
       </div>
 
       {/* --- POPUP MODALS --- */}
+      
+      {/* 1. Add Budget Modal (With Edit Data Passed) */}
+      <AddBudgetModal 
+        isOpen={isBudgetModalOpen} 
+        onClose={() => setIsBudgetModalOpen(false)} 
+        onSuccess={fetchData}
+        currentAmount={stats.budget}     // <--- Pass Amount
+        currentType={stats.budgetType}   // <--- Pass Type
+      />
+
       <AddExpenseModal 
         isOpen={isExpenseModalOpen} 
         onClose={() => setIsExpenseModalOpen(false)} 
         onSuccess={fetchData} 
       />
       
-      {/* Pass current budget info to modal for Editing */}
-      <AddBudgetModal 
-        isOpen={isBudgetModalOpen} 
-        onClose={() => setIsBudgetModalOpen(false)} 
-        onSuccess={fetchData}
-        currentAmount={stats.budget}
-        currentType={stats.budgetType}
-      />
-
       <SetCategoryBudgetModal 
         isOpen={isCatBudgetModalOpen} 
         onClose={() => setIsCatBudgetModalOpen(false)} 
