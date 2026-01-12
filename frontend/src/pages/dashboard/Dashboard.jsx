@@ -2,21 +2,22 @@ import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import AddExpenseModal from '@/components/dashboard/AddExpenseModal';
 import AddBudgetModal from '@/components/dashboard/AddBudgetModal';
-import SetCategoryBudgetModal from '@/components/dashboard/SetCategoryBudgetModal'; // New Modal
+import SetCategoryBudgetModal from '@/components/dashboard/SetCategoryBudgetModal';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import CategoryBreakdown from '@/components/dashboard/CategoryBreakdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { DollarSign, TrendingUp, TrendingDown, Plus, Wallet, Target } from 'lucide-react';
+// Added 'Pencil' icon to imports
+import { DollarSign, TrendingUp, TrendingDown, Plus, Wallet, Target, Pencil } from 'lucide-react';
 import api from '@/api/axios';
 
 const Dashboard = () => {
   // --- STATE MANAGEMENT ---
-  const [stats, setStats] = useState({ totalExpense: 0, budget: 0, remaining: 0 });
+  const [stats, setStats] = useState({ totalExpense: 0, budget: 0, budgetType: 'Monthly', remaining: 0 });
   const [chartData, setChartData] = useState([]);
   const [recentTxns, setRecentTxns] = useState([]);
-  const [categoryBudgets, setCategoryBudgets] = useState({}); // Stores per-category limits
+  const [categoryBudgets, setCategoryBudgets] = useState({}); 
 
   // --- MODAL STATES ---
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -30,9 +31,10 @@ const Dashboard = () => {
     try {
       // 1. Get Global Budget
       const budgetRes = await api.get('/budget/getBudget.php');
-      const budgetAmount = parseFloat(budgetRes.data.data.amount || 0);
-
-      // 2. Get Expense Summary (for Pie Chart & Stats)
+      const budgetAmount = parseFloat(budgetRes.data.data?.amount || 0);
+      const budgetType = budgetRes.data.data?.type || "Monthly"; 
+      
+      // 2. Get Expense Summary
       const analyticsRes = await api.get('/analytics/getMonthlySummary.php');
       let categories = [];
       let totalSpent = 0;
@@ -65,6 +67,7 @@ const Dashboard = () => {
       setStats({
         totalExpense: totalSpent,
         budget: budgetAmount,
+        budgetType: budgetType,
         remaining: budgetAmount - totalSpent
       });
       setChartData(categories);
@@ -75,9 +78,11 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
+
+  // Check if a budget is already active
+  const isBudgetSet = stats.budget > 0;
 
   // --- RENDER ---
   return (
@@ -100,12 +105,17 @@ const Dashboard = () => {
               <Target className="mr-2 h-4 w-4" /> Limit Category
             </Button>
 
+            {/* DYNAMIC BUTTON: Shows 'Edit' if budget exists, 'Set' if not */}
             <Button 
               variant="outline" 
               onClick={() => setIsBudgetModalOpen(true)} 
               className="border-blue-200 text-blue-700 hover:bg-blue-50 bg-white"
             >
-              <Wallet className="mr-2 h-4 w-4" /> Set Total Budget
+              {isBudgetSet ? (
+                <><Pencil className="mr-2 h-4 w-4" /> Edit Total Budget</>
+              ) : (
+                <><Wallet className="mr-2 h-4 w-4" /> Set Total Budget</>
+              )}
             </Button>
             
             <Button 
@@ -132,13 +142,16 @@ const Dashboard = () => {
           
           <Card className="bg-white border-gray-100 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Monthly Budget</CardTitle>
+              {/* Show Dynamic Type */}
+              <CardTitle className="text-sm font-medium text-gray-600">
+                 {stats.budgetType || "Monthly"} Budget
+              </CardTitle>
               <TrendingUp className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">NPR {stats.budget.toLocaleString()}</div>
             </CardContent>
-          </Card>
+          </Card> 
 
           <Card className="bg-white border-gray-100 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -220,10 +233,13 @@ const Dashboard = () => {
         onSuccess={fetchData} 
       />
       
+      {/* Pass current budget info to modal for Editing */}
       <AddBudgetModal 
         isOpen={isBudgetModalOpen} 
         onClose={() => setIsBudgetModalOpen(false)} 
-        onSuccess={fetchData} 
+        onSuccess={fetchData}
+        currentAmount={stats.budget}
+        currentType={stats.budgetType}
       />
 
       <SetCategoryBudgetModal 
