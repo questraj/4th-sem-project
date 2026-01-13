@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Loader2, Check, Upload, Image as ImageIcon } from "lucide-react";
+import { X, Loader2, Check, Upload, Image as ImageIcon, Calendar as CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,22 +13,22 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
   // UI States
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  
   const [isAddingSubCategory, setIsAddingSubCategory] = useState(false);
   const [newSubCategoryName, setNewSubCategoryName] = useState("");
 
   // Files State
   const [selectedFiles, setSelectedFiles] = useState([]);
 
+  // Form Data - Added 'source' with default 'Cash'
   const [formData, setFormData] = useState({
     amount: "",
     category_id: "", 
     sub_category_id: "", 
     date: new Date().toISOString().split('T')[0],
+    source: "Cash", // NEW FIELD
     description: ""
   });
 
-  // 1. Fetch Categories
   useEffect(() => {
     if (isOpen) fetchCategories();
   }, [isOpen]);
@@ -38,7 +38,6 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
       const res = await api.get("/category/getCategories.php");
       if (res.data.success) {
         setCategories(res.data.data);
-        // Default selection logic
         if (!formData.category_id && res.data.data.length > 0) {
             handleMainCategorySelect(res.data.data[0].id, res.data.data);
         }
@@ -46,7 +45,6 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
     } catch (error) { console.error(error); }
   };
 
-  // Helper to safely select a category and update sub-cats
   const handleMainCategorySelect = (catId, allCategories = categories) => {
     const selectedCat = allCategories.find(c => c.id == catId);
     setFormData(prev => ({ ...prev, category_id: catId, sub_category_id: "" }));
@@ -54,19 +52,12 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
     setIsAddingSubCategory(false);
   };
 
-  // --- HANDLERS ---
-  
-  // Handle Category Dropdown
   const handleCategoryChange = (e) => {
     const value = e.target.value;
-    if (value === "ADD_NEW_CAT") {
-        setIsAddingCategory(true);
-    } else {
-        handleMainCategorySelect(value);
-    }
+    if (value === "ADD_NEW_CAT") setIsAddingCategory(true);
+    else handleMainCategorySelect(value);
   };
 
-  // Handle Add New Main Category
   const handleAddNewCategory = async () => {
     if (!newCategoryName.trim()) return;
     setLoading(true);
@@ -83,17 +74,12 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
     } catch (error) { console.error(error); } finally { setLoading(false); }
   };
 
-  // Handle Sub-Category Dropdown
   const handleSubCategoryChange = (e) => {
     const value = e.target.value;
-    if (value === "ADD_NEW_SUB") {
-        setIsAddingSubCategory(true);
-    } else {
-        setFormData({ ...formData, sub_category_id: value });
-    }
+    if (value === "ADD_NEW_SUB") setIsAddingSubCategory(true);
+    else setFormData({ ...formData, sub_category_id: value });
   };
 
-  // Handle Add New Sub Category
   const handleAddNewSubCategory = async () => {
     if (!newSubCategoryName.trim()) return;
     setLoading(true);
@@ -102,53 +88,39 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
         category_id: formData.category_id,
         name: newSubCategoryName 
       });
-
       if (res.data.success) {
         const newSub = { id: res.data.data.id, name: res.data.data.name };
-        
-        // Update Local State
         setActiveSubCategories(prev => [...prev, newSub]);
         setFormData(prev => ({...prev, sub_category_id: newSub.id}));
-
-        // Update Main Cache
         setCategories(prevCats => prevCats.map(cat => {
             if (cat.id == formData.category_id) {
                 return { ...cat, sub_categories: [...(cat.sub_categories || []), newSub] };
             }
             return cat;
         }));
-
         setIsAddingSubCategory(false);
         setNewSubCategoryName("");
       }
     } catch (error) { console.error(error); } finally { setLoading(false); }
   };
 
-  // Handle File Selection
   const handleFileChange = (e) => {
-    if (e.target.files) {
-        setSelectedFiles(Array.from(e.target.files));
-    }
+    if (e.target.files) setSelectedFiles(Array.from(e.target.files));
   };
 
-  // --- SUBMIT FORM (Updated for FormData) ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      // Must use FormData object for File Uploads
       const submitData = new FormData();
       submitData.append('amount', formData.amount);
       submitData.append('category_id', formData.category_id);
       submitData.append('sub_category_id', formData.sub_category_id);
       submitData.append('date', formData.date);
+      submitData.append('source', formData.source); // NEW: Append Source
       submitData.append('description', formData.description);
 
-      // Append files
-      selectedFiles.forEach((file) => {
-        submitData.append('bills[]', file);
-      });
+      selectedFiles.forEach((file) => submitData.append('bills[]', file));
 
       await api.post("/expense/addExpense.php", submitData, {
         headers: { "Content-Type": "multipart/form-data" }
@@ -156,13 +128,10 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
 
       onSuccess();
       onClose();
-      // Reset form
-      setFormData({ amount: "", category_id: "", sub_category_id: "", date: new Date().toISOString().split('T')[0], description: "" });
+      setFormData({ amount: "", category_id: "", sub_category_id: "", date: new Date().toISOString().split('T')[0], source: "Cash", description: "" });
       setSelectedFiles([]);
-      
     } catch (error) {
       console.error("Failed to add expense", error);
-      alert("Failed to save. Check console.");
     } finally {
       setLoading(false);
     }
@@ -182,10 +151,26 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           
-          {/* Amount */}
-          <div className="space-y-2">
-            <Label>Amount</Label>
-            <Input type="number" step="0.01" required value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" />
+          {/* Amount & Source Row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Amount</Label>
+              <Input type="number" step="0.01" required value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" />
+            </div>
+            
+            {/* NEW: Source Dropdown */}
+            <div className="space-y-2">
+              <Label>Payment Source</Label>
+              <select 
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={formData.source} 
+                onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+              >
+                <option value="Cash">Cash</option>
+                <option value="Online">Online / Digital</option>
+                <option value="Cheque">Cheque</option>
+              </select>
+            </div>
           </div>
 
           {/* MAIN CATEGORY */}
@@ -225,36 +210,24 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
             )}
           </div>
 
-          {/* DATE PICKER (Allows typing) */}
+          {/* DATE PICKER */}
           <div className="space-y-2">
             <Label>Date</Label>
-            <Input 
-                type="date" 
-                required 
-                value={formData.date} 
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })} 
-                className="block w-full"
-            />
+            <div className="relative">
+                <Input type="date" required value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="block w-full pl-3" />
+            </div>
           </div>
 
-          {/* BILL UPLOAD (Multiple) */}
+          {/* BILL UPLOAD */}
           <div className="space-y-2">
             <Label>Bill Images (Optional)</Label>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
-                <Input 
-                    type="file" 
-                    multiple 
-                    accept="image/*" 
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChange={handleFileChange}
-                />
+                <Input type="file" multiple accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileChange} />
                 <div className="flex flex-col items-center gap-2 text-gray-500">
                     <Upload className="h-8 w-8 text-gray-400" />
-                    <span className="text-sm">Click to upload bill images</span>
+                    <span className="text-sm">Click or Drag to upload images</span>
                 </div>
             </div>
-            
-            {/* File Previews */}
             {selectedFiles.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                     {selectedFiles.map((file, idx) => (

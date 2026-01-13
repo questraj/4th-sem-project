@@ -4,18 +4,20 @@ import {
   LayoutDashboard, 
   PieChart, 
   Wallet, 
-  LogOut 
+  LogOut,
+  Layers 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Sidebar({ className, isCollapsed }) {
   const { logout } = useAuth();
 
-const navItems = [
+  const navItems = [
     { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
     { label: "Analytics", icon: PieChart, path: "/analytics" },
-    { label: "Budgets", icon: Wallet, path: "/budgets" }, // Ensure Budgets is here
-    { label: "Expenses", icon: Wallet, path: "/expenses" }, // Ensure Expenses is here and UNCOMMENTED
+    { label: "Budgets", icon: Wallet, path: "/budgets" },
+    { label: "Expenses", icon: Wallet, path: "/expenses" },
+    { label: "Categories", icon: Layers, path: "/categories" }, // NEW ITEM
   ];
   return (
     <aside 
