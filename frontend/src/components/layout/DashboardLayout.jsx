@@ -3,6 +3,7 @@ import Sidebar from "./Sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { Menu, X, PanelLeftClose, PanelLeftOpen, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 export default function DashboardLayout({ children }) {
   const { user, logout } = useAuth();
