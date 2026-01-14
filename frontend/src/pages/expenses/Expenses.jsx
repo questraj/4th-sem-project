@@ -3,7 +3,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input"; // Import Input
-import { Pencil, Trash2, Plus, Wallet, Search, X } from "lucide-react";
+import { Pencil, Trash2, Plus, Wallet, Search, X, Filter } from "lucide-react";
 import api from "@/api/axios";
 import AddExpenseModal from "@/components/dashboard/AddExpenseModal";
 import EditExpenseModal from "@/components/dashboard/EditExpenseModal";
@@ -102,7 +102,8 @@ export default function Expenses() {
                         type="date" 
                         value={startDate} 
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="bg-gray-50 border-gray-200"
+                        className="bg-gray-50 border-gray-200 cursor-pointer"
+                        onClick={(e) => e.target.showPicker()}
                     />
                 </div>
                 <div className="space-y-1">
@@ -110,15 +111,16 @@ export default function Expenses() {
                     <Input 
                         type="date" 
                         value={endDate} 
-                        onChange={(e) => setEndDate(e.target.value)} 
-                        className="bg-gray-50 border-gray-200"
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="bg-gray-50 border-gray-200 cursor-pointer"
+                        onClick={(e) => e.target.showPicker()}
                     />
                 </div>
             </div>
 
             <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-5">
-                <Button onClick={handleFilter} className="flex-1 sm:flex-none bg-gray-900 text-white hover:bg-gray-800">
-                    <Search className="mr-2 h-4 w-4" /> Filter
+                <Button onClick={handleFilter} className="flex-1 sm:flex-none text-white hover:bg-blue-700">
+                    <Filter className="mr-2 h-4 w-4" /> Filter
                 </Button>
                 {(startDate || endDate) && (
                     <Button variant="outline" onClick={handleReset} className="flex-1 sm:flex-none text-red-600 hover:text-red-700 border-red-100 hover:bg-red-50">

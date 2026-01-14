@@ -80,6 +80,7 @@ const Dashboard = () => {
   }, [period]); // Re-run when 'period' changes
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 
@@ -98,13 +99,13 @@ const Dashboard = () => {
                 </div>
                 
                 <div className="flex flex-wrap gap-2 sm:gap-3">
-                    <Button 
+                    {/* <Button
                     variant="ghost" 
                     onClick={() => setIsCatBudgetModalOpen(true)} 
                     className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100"
                     >
                     <Target className="mr-2 h-4 w-4" /> Limit Category
-                    </Button>
+                    </Button> */}
 
                     <Button 
                     variant="outline" 
@@ -131,7 +132,7 @@ const Dashboard = () => {
             <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-gray-100 w-fit shadow-sm">
                 <Calendar className="h-4 w-4 text-gray-500 ml-2" />
                 <select 
-                    className="bg-transparent text-sm font-medium text-gray-700 outline-none cursor-pointer pr-2"
+                    className="bg-transparent text-sm font-medium text-gray-700 outline-none border-none cursor-pointer pr-2"
                     value={period}
                     onChange={(e) => setPeriod(e.target.value)}
                 >

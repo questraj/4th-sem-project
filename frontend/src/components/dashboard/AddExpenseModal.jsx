@@ -143,7 +143,7 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg p-6 z-50 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg p-6 z-50 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto custom-scrollbar">
         
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold">Add New Expense</h2>
@@ -175,6 +175,7 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
                 value={formData.date} 
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })} 
                 className="block w-full" 
+                onClick={(e) => e.target.showPicker()} 
             />
           </div>
 

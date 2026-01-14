@@ -137,6 +137,34 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 10px;
+  transition: background-color 0.3s ease-out;
+  cursor: pointer;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2); /* Make thumb visible */
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.4); 
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+    cursor: grabbing;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -145,5 +173,21 @@
     @apply bg-background text-foreground;
     margin: 0;
     min-height: 100vh;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: 0.2s;
+    /* Invert colors based on the background to ensure contrast */
+    filter: invert(0); 
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
+  /* If you toggle Dark Mode, invert the icon to white so it shows on dark bg */
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
   }
 }

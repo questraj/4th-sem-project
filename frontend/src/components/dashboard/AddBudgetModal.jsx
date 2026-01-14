@@ -1,19 +1,22 @@
 import { useState, useEffect } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, AlertCircle } from "lucide-react"; // Added AlertCircle icon
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import api from "@/api/axios";
 
-// 1. Accept props: currentAmount, currentType
 export default function AddBudgetModal({ isOpen, onClose, onSuccess, currentAmount, currentType }) {
   const [loading, setLoading] = useState(false);
   const [amount, setAmount] = useState("");
   const [type, setType] = useState("Monthly");
+  
+  // New State for validation errors
+  const [error, setError] = useState("");
 
-  // 2. Pre-fill the form if data exists
+  // Pre-fill form on open
   useEffect(() => {
     if (isOpen) {
+      setError(""); // Clear error when modal opens
       if (currentAmount && currentAmount > 0) {
         setAmount(currentAmount);
         setType(currentType || "Monthly");
@@ -29,15 +32,25 @@ export default function AddBudgetModal({ isOpen, onClose, onSuccess, currentAmou
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(""); // Clear previous errors
+
     try {
-      await api.post("/budget/setbudget.php", { 
+      const res = await api.post("/budget/setbudget.php", { 
         amount: amount,
         type: type 
       });
-      onSuccess();
-      onClose();
+      
+      // Check success flag from backend
+      if (res.data.success) {
+        onSuccess();
+        onClose();
+      } else {
+        // If false, display the validation message from the PHP model
+        setError(res.data.message);
+      }
     } catch (error) {
       console.error("Failed to set budget", error);
+      setError("An unexpected server error occurred.");
     } finally {
       setLoading(false);
     }
@@ -56,6 +69,14 @@ export default function AddBudgetModal({ isOpen, onClose, onSuccess, currentAmou
             <X size={20} />
           </button>
         </div>
+
+        {/* --- Error Message Display --- */}
+        {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span className="leading-5">{error}</span>
+            </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

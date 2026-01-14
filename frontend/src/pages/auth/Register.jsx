@@ -37,7 +37,10 @@ export default function Register() {
     const nameRegex = /^[A-Za-z]+$/; 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!nameRegex.test(formData.first_name) || !nameRegex.test(formData.last_name)) {
+    const firstName = formData.first_name.trim();
+    const lastName = formData.last_name.trim();
+
+    if (!nameRegex.test(firstName) || !nameRegex.test(lastName)) {
         setMessage("Names should contain only letters.");
         return;
     }
@@ -63,6 +66,7 @@ export default function Register() {
       } else {
         setMessage(res.data.message || "Registration failed");
       }
+    // eslint-disable-next-line no-unused-vars
     } catch (error) {
       setMessage("An error occurred during registration.");
     }

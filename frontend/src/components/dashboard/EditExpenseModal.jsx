@@ -102,7 +102,12 @@ export default function EditExpenseModal({ isOpen, onClose, onSuccess, expense }
           </div>
           <div className="space-y-2">
             <Label>Date</Label>
-            <Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} required />
+            <Input type="date" 
+              value={formData.date} 
+              onChange={e => setFormData({...formData, date: e.target.value})} 
+              onClick={(e) => e.target.showPicker()} 
+              required
+            />
           </div>
           <div className="space-y-2">
             <Label>Description</Label>
