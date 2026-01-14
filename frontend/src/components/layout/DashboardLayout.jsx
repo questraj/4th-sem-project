@@ -3,10 +3,13 @@ import Sidebar from "./Sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { Menu, X, PanelLeftClose, PanelLeftOpen, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+// 1. Import useNavigate
 import { useNavigate } from "react-router-dom";
 
 export default function DashboardLayout({ children }) {
   const { user, logout } = useAuth();
+  // 2. Initialize Hook
+  const navigate = useNavigate();
   
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -73,7 +76,7 @@ export default function DashboardLayout({ children }) {
                 className="flex items-center gap-3 pl-3 outline-none"
              >
                 <div className="text-right hidden sm:block">
-                  <p className="text-sm font-medium text-gray-900 leading-none">{user?.name || "Trader"}</p>
+                  <p className="text-sm font-medium text-gray-900 leading-none">{user?.name || "User"}</p>
                 </div>
                 <div className="h-9 w-9 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold border border-blue-200 hover:bg-blue-200 transition-colors">
                    {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
@@ -88,10 +91,18 @@ export default function DashboardLayout({ children }) {
                   </div>
                   
                   <div className="p-1">
-                    <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
+                    {/* 3. Updated Profile Button */}
+                    <button 
+                       onClick={() => {
+                           navigate("/profile");
+                           setIsUserMenuOpen(false);
+                       }}
+                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+                    >
                        <User size={16} className="text-gray-500" />
                        Profile
                     </button>
+                    
                     <button 
                        onClick={logout}
                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg"
