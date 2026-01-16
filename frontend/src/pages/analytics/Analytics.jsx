@@ -7,6 +7,8 @@ import {
 } from "recharts";
 import api from "@/api/axios";
 import { Loader2, TrendingUp, Calendar } from "lucide-react";
+// 1. Import the new component
+import FinancialReport from "@/components/analytics/FinancialReport";
 
 export default function Analytics() {
   const [loading, setLoading] = useState(true);
@@ -15,7 +17,6 @@ export default function Analytics() {
 
   const fetchAnalytics = useCallback(async () => {
     try {
-      // 1. Fetch Category Data
       const catRes = await api.get('/analytics/getMonthlySummary.php');
       if (catRes.data.status) {
         setCategoryData(catRes.data.byCategory.map(item => ({
@@ -24,7 +25,6 @@ export default function Analytics() {
         })));
       }
 
-      // 2. Fetch Real Daily Trend Data
       const trendRes = await api.get('/analytics/getDailyTrend.php');
       if (trendRes.data.status) {
         setTrendData(trendRes.data.data);
@@ -51,21 +51,27 @@ export default function Analytics() {
     );
   }
 
-  // Calculate highest spending category
   const topCategory = categoryData.length > 0 
     ? categoryData.reduce((prev, current) => (prev.amount > current.amount) ? prev : current)
     : { name: 'None', amount: 0 };
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="space-y-8 pb-10">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">Analytics</h1>
           <p className="text-muted-foreground">Detailed insights into your spending habits</p>
         </div>
 
+        {/* 2. Add the Report Component Here at the top or bottom. 
+             I recommend top for high visibility. */}
+        <div className="grid gap-6">
+           <FinancialReport />
+        </div>
+
         {/* Key Metrics */}
         <div className="grid gap-4 md:grid-cols-2">
+           {/* ... existing Key Metrics code ... */}
            <Card className="bg-blue-50 border-blue-100">
              <CardHeader className="flex flex-row items-center justify-between pb-2">
                <CardTitle className="text-sm font-medium text-blue-900">Top Spending Category</CardTitle>
@@ -91,8 +97,7 @@ export default function Analytics() {
 
         {/* Charts Grid */}
         <div className="grid gap-6 md:grid-cols-2">
-          
-          {/* Bar Chart: Expenses by Category */}
+           {/* ... existing Charts code ... */}
           <Card className="col-span-2 md:col-span-1">
             <CardHeader>
               <CardTitle>Expenses by Category</CardTitle>
@@ -114,7 +119,6 @@ export default function Analytics() {
             </CardContent>
           </Card>
 
-          {/* Line Chart: Spending Trend */}
           <Card className="col-span-2 md:col-span-1">
             <CardHeader>
               <CardTitle>Monthly Spending Trend</CardTitle>
