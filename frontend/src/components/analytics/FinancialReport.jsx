@@ -1,217 +1,162 @@
-import { useEffect, useState, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { FileText, Loader2, AlertTriangle, CheckCircle, Download } from "lucide-react";
+import { 
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
+  LineChart, Line, CartesianGrid 
+} from "recharts";
 import api from "@/api/axios";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { Loader2, TrendingUp, Calendar } from "lucide-react";
+// 1. Import the new component
+import FinancialReport from "@/components/analytics/FinancialReport";
 
-export default function FinancialReport() {
+export default function Analytics() {
   const [loading, setLoading] = useState(true);
-  const [pdfLoading, setPdfLoading] = useState(false);
-  const reportRef = useRef(null);
+  const [categoryData, setCategoryData] = useState([]);
+  const [trendData, setTrendData] = useState([]); 
 
-  const [data, setData] = useState({
-    weekly: { budget: 0, spent: 0 },
-    monthly: { budget: 0, spent: 0 },
-    yearly: { budget: 0, spent: 0 },
-  });
-
-  useEffect(() => {
-    const fetchAllData = async () => {
-      try {
-        const [
-          wBudget, wExp,
-          mBudget, mExp,
-          yBudget, yExp
-        ] = await Promise.all([
-          api.get('/budget/getBudget.php?type=Weekly'),
-          api.get('/analytics/getExpenseSummary.php?period=Weekly'),
-          api.get('/budget/getBudget.php?type=Monthly'),
-          api.get('/analytics/getExpenseSummary.php?period=Monthly'),
-          api.get('/budget/getBudget.php?type=Yearly'),
-          api.get('/analytics/getExpenseSummary.php?period=Yearly'),
-        ]);
-
-        setData({
-          weekly: { 
-            budget: parseFloat(wBudget.data.data?.amount || 0), 
-            spent: parseFloat(wExp.data.totalExpense || 0) 
-          },
-          monthly: { 
-            budget: parseFloat(mBudget.data.data?.amount || 0), 
-            spent: parseFloat(mExp.data.totalExpense || 0) 
-          },
-          yearly: { 
-            budget: parseFloat(yBudget.data.data?.amount || 0), 
-            spent: parseFloat(yExp.data.totalExpense || 0) 
-          },
-        });
-      } catch (error) {
-        console.error("Failed to generate report", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAllData();
-  }, []);
-
-  // --- PDF GENERATION LOGIC ---
-  const handleDownloadPDF = async () => {
-    const element = reportRef.current;
-    if (!element) return;
-
-    setPdfLoading(true);
-
+  const fetchAnalytics = useCallback(async () => {
     try {
-      // Configuration to ensure stability
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        // This helps prevent cloning issues with certain CSS features
-        onclone: (clonedDoc) => {
-            const clonedElement = clonedDoc.querySelector('[data-print-target]');
-            if(clonedElement) {
-                clonedElement.style.fontFamily = 'Arial, sans-serif'; // Enforce simple font
-            }
-        }
-      });
+      const catRes = await api.get('/analytics/getMonthlySummary.php');
+      if (catRes.data.status) {
+        setCategoryData(catRes.data.byCategory.map(item => ({
+          name: item.category,
+          amount: parseFloat(item.total)
+        })));
+      }
 
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      pdf.addImage(imgData, "PNG", 10, 10, pdfWidth - 20, pdfHeight - 20);
-      
-      const dateStr = new Date().toISOString().split('T')[0];
-      pdf.save(`Financial_Report_${dateStr}.pdf`);
+      const trendRes = await api.get('/analytics/getDailyTrend.php');
+      if (trendRes.data.status) {
+        setTrendData(trendRes.data.data);
+      }
 
     } catch (error) {
-      console.error("PDF generation failed", error);
-      alert("Failed to generate PDF. Check console for details.");
+      console.error("Error fetching analytics", error);
     } finally {
-      setPdfLoading(false);
+      setLoading(false);
     }
-  };
+  }, []);
 
-  // --- CONTENT GENERATION ---
-  const generateParagraph = (period, name) => {
-    const { budget, spent } = period;
-    const diff = budget - spent;
-    const percent = budget > 0 ? ((spent / budget) * 100).toFixed(1) : 0;
-
-    if (budget === 0) return `For your ${name} expenses, you have spent NPR ${spent.toLocaleString()} so far. No budget limit has been set for this period.`;
-    
-    // Using inline hex colors strictly
-    if (spent > budget) {
-      return `For your ${name} budget, you are currently <span style="font-weight:bold; color:#dc2626;">over budget</span>. You have spent NPR ${spent.toLocaleString()} against a limit of NPR ${budget.toLocaleString()}, exceeding it by NPR ${Math.abs(diff).toLocaleString()}. This is a utilization of ${percent}%.`;
-    } else {
-      return `For your ${name} budget, you are <span style="font-weight:bold; color:#16a34a;">on track</span>. You have spent NPR ${spent.toLocaleString()} out of NPR ${budget.toLocaleString()}, leaving you with NPR ${diff.toLocaleString()} (${(100 - percent).toFixed(1)}%) remaining.`;
-    }
-  };
-
-  const getOverallHealth = () => {
-    const wHealth = data.weekly.spent <= data.weekly.budget || data.weekly.budget === 0;
-    const mHealth = data.monthly.spent <= data.monthly.budget || data.monthly.budget === 0;
-    
-    if (wHealth && mHealth) return { status: "Excellent", color: "#16a34a", icon: CheckCircle };
-    if (!wHealth && !mHealth) return { status: "Critical", color: "#dc2626", icon: AlertTriangle };
-    return { status: "Needs Attention", color: "#f97316", icon: AlertTriangle };
-  };
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="pt-6 flex justify-center text-gray-400">
-          <div className="flex items-center gap-2"><Loader2 className="animate-spin h-4 w-4" /> Generating Analysis...</div>
-        </CardContent>
-      </Card>
+      <DashboardLayout>
+        <div className="h-full flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        </div>
+      </DashboardLayout>
     );
   }
 
-  const health = getOverallHealth();
-  const Icon = health.icon;
+  const topCategory = categoryData.length > 0 
+    ? categoryData.reduce((prev, current) => (prev.amount > current.amount) ? prev : current)
+    : { name: 'None', amount: 0 };
 
   return (
-    <div 
-      ref={reportRef}
-      data-print-target="true"
-      className="rounded-xl border shadow-sm"
-      style={{ 
-        backgroundColor: "#ffffff", 
-        borderColor: "#e5e7eb",
-        borderWidth: "1px",
-        borderStyle: "solid"
-      }}
-    >
-      {/* Header */}
-      <div 
-        className="flex flex-row items-center justify-between p-6 pb-2"
-        style={{ borderBottom: "1px solid #f3f4f6" }}
-      >
-        <div className="flex items-center gap-2 text-lg font-semibold" style={{ color: "#1f2937" }}>
-          {/* Explicitly coloring the icon wrapper */}
-          <span style={{ color: "#2563eb", display: "flex", alignItems: "center" }}>
-            <FileText size={20} />
-          </span>
-          Financial Health Report
+    <DashboardLayout>
+      <div className="space-y-8 pb-10">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Analytics</h1>
+          <p className="text-muted-foreground">Detailed insights into your spending habits</p>
         </div>
-        
-        <div className="flex items-center gap-3">
-            {/* Status Badge */}
-            <div 
-                className="flex items-center gap-1 text-sm font-bold px-3 py-1 rounded-full shadow-sm"
-                style={{ 
-                    backgroundColor: "#ffffff", 
-                    color: health.color,
-                    border: `1px solid ${health.color}`,
-                    opacity: 0.9
-                }}
-            >
-                <Icon size={14} /> {health.status}
-            </div>
 
-            {/* Download Button - Ignored by html2canvas */}
-            <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleDownloadPDF} 
-                disabled={pdfLoading}
-                className="ml-2 hidden md:flex" 
-                data-html2canvas-ignore="true"
-            >
-                {pdfLoading ? <Loader2 className="animate-spin h-4 w-4" /> : <Download className="h-4 w-4" />}
-            </Button>
+        {/* 2. Add the Report Component Here at the top or bottom. 
+             I recommend top for high visibility. */}
+        <div className="grid gap-6">
+           <FinancialReport />
+        </div>
+
+        {/* Key Metrics */}
+        <div className="grid gap-4 md:grid-cols-2">
+           {/* ... existing Key Metrics code ... */}
+           <Card className="bg-blue-50 border-blue-100">
+             <CardHeader className="flex flex-row items-center justify-between pb-2">
+               <CardTitle className="text-sm font-medium text-blue-900">Top Spending Category</CardTitle>
+               <TrendingUp className="h-4 w-4 text-blue-600" />
+             </CardHeader>
+             <CardContent>
+               <div className="text-2xl font-bold text-blue-700">{topCategory.name}</div>
+               <p className="text-xs text-blue-600/80 mt-1">NPR {topCategory.amount.toLocaleString()}</p>
+             </CardContent>
+           </Card>
+
+           <Card className="bg-purple-50 border-purple-100">
+             <CardHeader className="flex flex-row items-center justify-between pb-2">
+               <CardTitle className="text-sm font-medium text-purple-900">Data Points</CardTitle>
+               <Calendar className="h-4 w-4 text-purple-600" />
+             </CardHeader>
+             <CardContent>
+               <div className="text-2xl font-bold text-purple-700">{categoryData.length} Categories</div>
+               <p className="text-xs text-purple-600/80 mt-1">Active this month</p>
+             </CardContent>
+           </Card>
+        </div>
+
+        {/* Charts Grid */}
+        <div className="grid gap-6 md:grid-cols-2">
+           {/* ... existing Charts code ... */}
+          <Card className="col-span-2 md:col-span-1">
+            <CardHeader>
+              <CardTitle>Expenses by Category</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={categoryData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                    <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val}`} />
+                    <Tooltip 
+                      cursor={{ fill: 'transparent' }}
+                      contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                    />
+                    <Bar dataKey="amount" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="col-span-2 md:col-span-1">
+            <CardHeader>
+              <CardTitle>Monthly Spending Trend</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80 w-full">
+                {trendData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trendData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                      <XAxis dataKey="day" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis fontSize={12} tickLine={false} axisLine={false} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                        formatter={(value) => `NPR ${value}`}
+                        labelFormatter={(label) => `Day ${label}`}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="amount" 
+                        stroke="#8b5cf6" 
+                        strokeWidth={3} 
+                        dot={{ r: 4, fill: "#8b5cf6" }} 
+                        activeDot={{ r: 6 }} 
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                   <div className="h-full flex items-center justify-center text-gray-400">
+                     No spending data found for this month.
+                   </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
         </div>
       </div>
-      
-      {/* Content */}
-      <div className="p-6 pt-6 space-y-4 leading-relaxed" style={{ color: "#374151", fontSize: "15px" }}>
-        <p dangerouslySetInnerHTML={{ __html: generateParagraph(data.weekly, "weekly") }} />
-        <p dangerouslySetInnerHTML={{ __html: generateParagraph(data.monthly, "monthly") }} />
-        <p dangerouslySetInnerHTML={{ __html: generateParagraph(data.yearly, "yearly") }} />
-        
-        {/* Summary Box */}
-        <div 
-            className="mt-4 p-4 rounded-lg text-sm"
-            style={{ 
-                backgroundColor: "#eff6ff", 
-                color: "#1e40af", 
-                border: "1px solid #dbeafe"
-            }}
-        >
-            <strong>Summary:</strong> Total expenditure this year stands at 
-            <span style={{ fontWeight: "bold" }}> NPR {data.yearly.spent.toLocaleString()}</span>. 
-            {data.monthly.spent > data.monthly.budget && data.monthly.budget > 0 
-                ? " Ideally, you should reduce spending in non-essential categories to get back on track for the month." 
-                : " Maintain this spending habit to maximize your yearly savings."}
-        </div>
-      </div>
-    </div>
+    </DashboardLayout>
   );
 }
