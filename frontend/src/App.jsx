@@ -28,25 +28,21 @@ function App() {
             </PrivateRoute>
           } />
 
-          {/* New Route */}
           <Route path="/analytics" element={
             <PrivateRoute>
               <Analytics />
             </PrivateRoute>
           } />
-           {/* Add this Route */}
           <Route path="/expenses" element={
             <PrivateRoute>
               <Expenses />
             </PrivateRoute>
           } />
-           {/* ADD THIS NEW ROUTE */}
           <Route path="/budgets" element={
             <PrivateRoute>
               <Budgets />
             </PrivateRoute>
           } />
-             {/* Add New Route */}
           <Route path="/categories" element={
             <PrivateRoute>
               <Categories />

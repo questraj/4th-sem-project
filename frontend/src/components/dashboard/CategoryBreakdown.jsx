@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet } from "lucide-react";
 
 export default function CategoryBreakdown({ categories, categoryBudgets }) {
-  // Sort by highest spending
   const sortedCategories = [...categories].sort((a, b) => b.value - a.value);
 
   return (
@@ -15,7 +14,6 @@ export default function CategoryBreakdown({ categories, categoryBudgets }) {
         {sortedCategories.length > 0 ? (
           sortedCategories.map((cat, index) => {
             const spent = cat.value;
-            // Check if specific budget exists for this category name
             const limit = categoryBudgets[cat.name] || 0; 
             
             let percentage = 0;
@@ -26,7 +24,6 @@ export default function CategoryBreakdown({ categories, categoryBudgets }) {
                 percentage = Math.min(((spent / limit) * 100), 100);
                 label = `Limit: ${limit.toLocaleString()}`;
                 
-                // Color logic
                 if (percentage > 90) barColor = "bg-red-500";
                 else if (percentage > 70) barColor = "bg-yellow-500";
                 else barColor = "bg-blue-500";

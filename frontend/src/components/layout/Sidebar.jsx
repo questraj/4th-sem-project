@@ -17,7 +17,7 @@ export default function Sidebar({ className, isCollapsed }) {
     { label: "Analytics", icon: PieChart, path: "/analytics" },
     { label: "Budgets", icon: Wallet, path: "/budgets" },
     { label: "Expenses", icon: Wallet, path: "/expenses" },
-    { label: "Categories", icon: Layers, path: "/categories" }, // NEW ITEM
+    { label: "Categories", icon: Layers, path: "/categories" },
   ];
   return (
     <aside 

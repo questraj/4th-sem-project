@@ -18,7 +18,6 @@ export default function EditExpenseModal({ isOpen, onClose, onSuccess, expense }
     description: ""
   });
 
-  // 1. Fetch Categories
   useEffect(() => {
     const fetchCats = async () => {
       try {
@@ -31,7 +30,6 @@ export default function EditExpenseModal({ isOpen, onClose, onSuccess, expense }
     if (isOpen) fetchCats();
   }, [isOpen]);
 
-  // 2. Load Expense Data when opened
   useEffect(() => {
     if (expense && categories.length > 0) {
       setFormData({
@@ -47,7 +45,6 @@ export default function EditExpenseModal({ isOpen, onClose, onSuccess, expense }
     }
   }, [expense, categories, isOpen]);
 
-  // 3. Handle Category Change
   const handleCategoryChange = (e) => {
     const catId = e.target.value;
     const selectedCat = categories.find(c => c.id == catId);

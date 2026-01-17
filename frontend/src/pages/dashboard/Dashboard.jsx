@@ -28,15 +28,11 @@ const Dashboard = () => {
 
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
-  // --- DATA FETCHING ---
   const fetchData = useCallback(async () => {
     try {
-      // 1. Get Budget based on selected Period (Weekly/Monthly/Yearly)
       const budgetRes = await api.get(`/budget/getBudget.php?type=${period}`);
       const budgetAmount = parseFloat(budgetRes.data.data?.amount || 0);
       
-      // 2. Get Expense Summary based on selected Period
-      // We use the new endpoint here
       const analyticsRes = await api.get(`/analytics/getExpenseSummary.php?period=${period}`);
       let categories = [];
       let totalSpent = 0;
@@ -49,13 +45,11 @@ const Dashboard = () => {
         }));
       }
 
-      // 3. Get Recent Transactions (Keep as is, showing latest activity)
       const txnRes = await api.get('/expense/getRecentExpenses.php');
       if (txnRes.data.status) {
         setRecentTxns(txnRes.data.data);
       }
 
-      // 4. Get Category Limits
       try {
         const catBudgetRes = await api.get('/budget/getCategoryBudgets.php');
         if (catBudgetRes.data.success) {
@@ -65,11 +59,10 @@ const Dashboard = () => {
         console.warn("Category budgets fetch failed", e);
       }
 
-      // 5. Update State
       setStats({
         totalExpense: totalSpent,
         budget: budgetAmount,
-        budgetType: period, // Ensure UI reflects the selected period
+        budgetType: period,
         remaining: budgetAmount - totalSpent
       });
       setChartData(categories);
@@ -77,7 +70,7 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Failed to fetch dashboard data", error);
     }
-  }, [period]); // Re-run when 'period' changes
+  }, [period]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -128,7 +121,6 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* --- NEW DROPDOWN FILTER --- */}
             <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-gray-100 w-fit shadow-sm">
                 <Calendar className="h-4 w-4 text-gray-500 ml-2" />
                 <select 
@@ -143,7 +135,6 @@ const Dashboard = () => {
             </div>
         </div>
 
-        {/* Key Metrics Grid */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="bg-white border-gray-100 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -181,10 +172,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Main Content Grid: 2 Columns */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* LEFT COLUMN */}
           <div className="lg:col-span-2 space-y-6">
              <Card className="border-gray-100 shadow-sm">
               <CardHeader>
@@ -231,7 +219,6 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* RIGHT COLUMN */}
           <div className="lg:col-span-1">
             <RecentTransactions transactions={recentTxns} />
           </div>
@@ -239,13 +226,12 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* --- POPUP MODALS --- */}
       <AddBudgetModal 
         isOpen={isBudgetModalOpen} 
         onClose={() => setIsBudgetModalOpen(false)} 
         onSuccess={fetchData}
         currentAmount={stats.budget}
-        currentType={period} // Pass the selected period to pre-fill the modal
+        currentType={period}
       />
 
       <AddExpenseModal 

@@ -3,12 +3,10 @@ import Sidebar from "./Sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { Menu, X, PanelLeftClose, PanelLeftOpen, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-// 1. Import useNavigate
 import { useNavigate } from "react-router-dom";
 
 export default function DashboardLayout({ children }) {
   const { user, logout } = useAuth();
-  // 2. Initialize Hook
   const navigate = useNavigate();
   
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -91,7 +89,6 @@ export default function DashboardLayout({ children }) {
                   </div>
                   
                   <div className="p-1">
-                    {/* 3. Updated Profile Button */}
                     <button 
                        onClick={() => {
                            navigate("/profile");

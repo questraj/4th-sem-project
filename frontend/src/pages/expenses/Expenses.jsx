@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"; // Import Input
+import { Input } from "@/components/ui/input";
 import { Pencil, Trash2, Plus, Wallet, Search, X, Filter } from "lucide-react";
 import api from "@/api/axios";
 import AddExpenseModal from "@/components/dashboard/AddExpenseModal";
@@ -21,13 +21,11 @@ export default function Expenses() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
 
-  // 1. Fetch Expenses (Now accepts optional dates)
   const fetchExpenses = useCallback(async (start = "", end = "") => {
     setLoading(true);
     try {
       let url = "/expense/getAllExpenses.php";
       
-      // Append query parameters if dates exist
       if (start && end) {
         url += `?start_date=${start}&end_date=${end}`;
       }
@@ -43,12 +41,10 @@ export default function Expenses() {
     }
   }, []);
 
-  // Initial Load
   useEffect(() => {
     fetchExpenses();
   }, [fetchExpenses]);
 
-  // 2. Handle Search Button Click
   const handleFilter = () => {
     if (startDate && endDate) {
         fetchExpenses(startDate, endDate);
@@ -57,18 +53,16 @@ export default function Expenses() {
     }
   };
 
-  // 3. Handle Reset Button Click
   const handleReset = () => {
     setStartDate("");
     setEndDate("");
-    fetchExpenses(); // Fetch all again
+    fetchExpenses();
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this expense?")) return;
     try {
       await api.post("/expense/deleteExpense.php", { id });
-      // Refresh current view (keep filters if active)
       fetchExpenses(startDate, endDate);
     } catch (error) { console.error(error); }
   };
@@ -81,8 +75,6 @@ export default function Expenses() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        
-        {/* HEADER & ACTIONS */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight text-gray-900">Expenses</h1>
@@ -93,7 +85,6 @@ export default function Expenses() {
             </Button>
         </div>
 
-        {/* --- FILTER BAR --- */}
         <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col sm:flex-row gap-4 items-end sm:items-center">
             <div className="grid grid-cols-2 gap-4 w-full sm:w-auto">
                 <div className="space-y-1">
@@ -130,7 +121,6 @@ export default function Expenses() {
             </div>
         </div>
 
-        {/* TABLE CARD */}
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">

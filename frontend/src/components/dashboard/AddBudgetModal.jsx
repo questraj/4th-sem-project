@@ -10,13 +10,11 @@ export default function AddBudgetModal({ isOpen, onClose, onSuccess, currentAmou
   const [amount, setAmount] = useState("");
   const [type, setType] = useState("Monthly");
   
-  // New State for validation errors
   const [error, setError] = useState("");
 
-  // Pre-fill form on open
   useEffect(() => {
     if (isOpen) {
-      setError(""); // Clear error when modal opens
+      setError("");
       if (currentAmount && currentAmount > 0) {
         setAmount(currentAmount);
         setType(currentType || "Monthly");
@@ -32,7 +30,7 @@ export default function AddBudgetModal({ isOpen, onClose, onSuccess, currentAmou
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError(""); // Clear previous errors
+    setError("");
 
     try {
       const res = await api.post("/budget/setbudget.php", { 
@@ -45,7 +43,6 @@ export default function AddBudgetModal({ isOpen, onClose, onSuccess, currentAmou
         onSuccess();
         onClose();
       } else {
-        // If false, display the validation message from the PHP model
         setError(res.data.message);
       }
     } catch (error) {
@@ -70,7 +67,7 @@ export default function AddBudgetModal({ isOpen, onClose, onSuccess, currentAmou
           </button>
         </div>
 
-        {/* --- Error Message Display --- */}
+        {/* Error Message Display */}
         {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />

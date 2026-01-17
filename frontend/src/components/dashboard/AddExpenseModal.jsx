@@ -52,7 +52,6 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
     setIsAddingSubCategory(false);
   };
 
-  // --- HANDLERS ---
   const handleCategoryChange = (e) => {
     const value = e.target.value;
     if (value === "ADD_NEW_CAT") setIsAddingCategory(true);
@@ -152,7 +151,6 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           
-          {/* 1. AMOUNT (Top) */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Amount (NPR)</Label>
             <Input 
@@ -166,7 +164,6 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
             />
           </div>
 
-          {/* 2. DATE (Below Amount) */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Date</Label>
             <Input 
@@ -179,7 +176,6 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
             />
           </div>
 
-          {/* 3. CATEGORY & SUB-CATEGORY (Side by Side) */}
           <div className="grid grid-cols-2 gap-4">
               {/* Category */}
               <div className="space-y-2">
@@ -227,7 +223,6 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
               </div>
           </div>
 
-          {/* 4. SOURCE (Below Categories) */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Payment Source</Label>
             <select 
@@ -241,7 +236,6 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
             </select>
           </div>
 
-          {/* 5. BILL IMAGES (Below Source) */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Receipt / Bill Photos</Label>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
@@ -269,7 +263,6 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
             )}
           </div>
 
-          {/* 6. DESCRIPTION (Bottom - Text Area) */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Description</Label>
             <textarea

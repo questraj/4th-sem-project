@@ -9,7 +9,6 @@ export default function SetCategoryBudgetModal({ isOpen, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ category_id: "1", amount: "" });
 
-  // Hardcoded categories (Ideally fetch from DB)
   const categories = [
     { id: 1, name: "Food" },
     { id: 2, name: "Transport" },

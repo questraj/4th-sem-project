@@ -14,8 +14,8 @@ export default function Register() {
     last_name: "",
     email: "",
     password: "",
-    bank_name: "",       // New Field
-    bank_account_no: ""  // New Field
+    bank_name: "",       
+    bank_account_no: ""  
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -33,7 +33,6 @@ export default function Register() {
     e.preventDefault();
     setMessage("");
 
-    // Simple RegEx Checks
     const nameRegex = /^[A-Za-z]+$/; 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -116,7 +115,6 @@ export default function Register() {
           </div>
         </div>
 
-        {/* --- NEW BANK INFO SECTION --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="bank_name" className="text-gray-300 font-normal">Bank Name (Optional)</Label>

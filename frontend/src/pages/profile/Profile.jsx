@@ -10,19 +10,13 @@ import api from "@/api/axios";
 export default function Profile() {
   const [loading, setLoading] = useState(false);
   const [passLoading, setPassLoading] = useState(false);
-  
-  // Toggle State for Edit Mode
   const [isEditing, setIsEditing] = useState(false);
 
-  // Profile Data
   const [formData, setFormData] = useState({
     first_name: "", middle_name: "", last_name: "", email: "", bank_name: "", bank_account_no: ""
   });
 
-  // Keep a backup to revert changes if user clicks Cancel
   const [originalData, setOriginalData] = useState({});
-
-  // Password Data
   const [passData, setPassData] = useState({ current_password: "", new_password: "", confirm_password: "" });
 
   useEffect(() => {
@@ -34,19 +28,18 @@ export default function Profile() {
       const res = await api.get("/user/getProfile.php");
       if (res.data.success) {
         setFormData(res.data.data);
-        setOriginalData(res.data.data); // Save backup
+        setOriginalData(res.data.data);
       }
     } catch (e) { console.error(e); }
   };
 
-  // Update Info Handler
   const handleInfoSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       await api.post("/user/updateProfile.php", formData);
-      setOriginalData(formData); // Update backup
-      setIsEditing(false); // Exit edit mode
+      setOriginalData(formData);
+      setIsEditing(false);
       alert("Profile updated!");
     } catch (e) { 
         alert("Failed to update"); 
@@ -55,13 +48,11 @@ export default function Profile() {
     }
   };
 
-  // Handle Cancel
   const handleCancel = () => {
-    setFormData(originalData); // Revert changes
+    setFormData(originalData);
     setIsEditing(false);
   };
 
-  // Change Password Handler
   const handlePassSubmit = async (e) => {
     e.preventDefault();
     if (passData.new_password !== passData.confirm_password) {
@@ -80,7 +71,6 @@ export default function Profile() {
     } catch (e) { alert("Error changing password"); } finally { setPassLoading(false); }
   };
 
-  // Helper to render Field value or Input
   const renderField = (label, key, placeholder = "") => (
     <div>
         <Label className="text-gray-500 text-xs uppercase font-bold tracking-wider">{label}</Label>
@@ -106,13 +96,11 @@ export default function Profile() {
 
         <div className="grid gap-6 md:grid-cols-2">
             
-            {/* 1. PERSONAL DETAILS CARD */}
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
                     <CardTitle className="flex items-center gap-2 text-lg">
                         <User className="h-5 w-5 text-blue-600"/> Personal Information
                     </CardTitle>
-                    {/* EDIT BUTTON */}
                     {!isEditing && (
                         <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} className="text-blue-600 hover:bg-blue-50 hover:text-blue-700">
                             <Pencil size={16} className="mr-2" /> Edit Details
@@ -128,7 +116,6 @@ export default function Profile() {
                             {renderField("Last Name", "last_name")}
                         </div>
 
-                        {/* Email (Always Read-Only) */}
                         <div>
                             <Label className="text-gray-500 text-xs uppercase font-bold tracking-wider">Email Address</Label>
                             <div className="mt-1 p-2 bg-blue-50/50 border border-blue-100 text-blue-800 rounded-md flex items-center">
@@ -148,7 +135,6 @@ export default function Profile() {
                             </div>
                         </div>
 
-                        {/* Action Buttons (Only show when editing) */}
                         {isEditing && (
                             <div className="flex gap-3 pt-2 animate-in fade-in slide-in-from-top-2">
                                 <Button type="button" variant="outline" className="flex-1" onClick={handleCancel}>
@@ -164,7 +150,6 @@ export default function Profile() {
                 </CardContent>
             </Card>
 
-            {/* 2. CHANGE PASSWORD CARD (Always Editable) */}
             <Card>
                 <CardHeader className="border-b pb-4">
                     <CardTitle className="flex items-center gap-2 text-lg">

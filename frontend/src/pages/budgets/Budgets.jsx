@@ -44,17 +44,12 @@ export default function Budgets() {
             <CardHeader><CardTitle>Budget History</CardTitle></CardHeader>
             <CardContent>
                 <div className="relative w-full overflow-auto">
-                    {/* TABLE STRUCTURE */}
                     <table className="w-full caption-bottom text-sm text-left">
                         <thead className="[&_tr]:border-b bg-gray-50">
                             <tr className="border-b">
-                                {/* COLUMN 1 */}
                                 <th className="h-12 px-4 align-middle font-medium text-gray-500">Frequency Type</th>
-                                {/* COLUMN 2 */}
                                 <th className="h-12 px-4 align-middle font-medium text-gray-500">Amount (NPR)</th>
-                                {/* COLUMN 3 */}
                                 <th className="h-12 px-4 align-middle font-medium text-gray-500">Created Date</th>
-                                {/* COLUMN 4 */}
                                 <th className="h-12 px-4 align-middle font-medium text-gray-500 text-right">Actions</th>
                             </tr>
                         </thead>
