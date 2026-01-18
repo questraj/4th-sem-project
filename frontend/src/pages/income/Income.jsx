@@ -3,20 +3,19 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, Trash2, Plus, Banknote, Search, X, Filter, Loader2, AlertCircle, ChevronLeft, ChevronRight, Calculator, Calendar, List, LayoutGrid } from "lucide-react";
+import { Pencil, Trash2, Plus, Search, X, Filter, Loader2, ChevronLeft, ChevronRight, Calculator, Calendar, List, LayoutGrid } from "lucide-react";
 import api from "@/api/axios";
 import AddIncomeModal from "@/components/dashboard/AddIncomeModal";
-import SetMonthlyIncomeModal from "@/components/dashboard/SetMonthlyIncomeModal"; // New Import
+import SetMonthlyIncomeModal from "@/components/dashboard/SetMonthlyIncomeModal";
 
 const MONTH_NAMES = ["", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
 export default function Income() {
-  const [activeTab, setActiveTab] = useState("planner"); // 'planner' or 'history'
+  const [activeTab, setActiveTab] = useState("planner");
   
   // --- HISTORY STATES ---
   const [incomes, setIncomes] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [error, setError] = useState(""); 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -32,14 +31,12 @@ export default function Income() {
   // --- FETCH HISTORY ---
   const fetchHistory = useCallback(async (start = "", end = "") => {
     setHistoryLoading(true);
-    setError("");
     try {
       let url = "/income/getAllIncomes.php";
       if (start && end) url += `?start_date=${start}&end_date=${end}`;
       const res = await api.get(url);
       if (res.data.success) setIncomes(res.data.data || []);
-      else setError(res.data.message);
-    } catch (error) { console.error(error); setError("Server error"); } 
+    } catch (error) { console.error(error); } 
     finally { setHistoryLoading(false); }
   }, []);
 
@@ -58,11 +55,9 @@ export default function Income() {
     else fetchPlanner();
   }, [activeTab, fetchHistory, fetchPlanner]);
 
-  // --- HANDLERS ---
   const handleFilter = () => { if (startDate && endDate) fetchHistory(startDate, endDate); else alert("Select dates"); };
   const handleReset = () => { setStartDate(""); setEndDate(""); fetchHistory(); };
   const handleDelete = async (id) => { if(confirm("Delete?")) { await api.post("/income/deleteIncome.php", { id }); fetchHistory(startDate, endDate); }};
-  
   const handleMonthClick = (item) => { setSelectedMonth(item); setIsPlanModalOpen(true); };
 
   const totalYearlyPlan = planData.reduce((acc, curr) => acc + curr.amount, 0);
@@ -117,40 +112,30 @@ export default function Income() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {planData.map((item) => {
-                        const isSet = item.amount > 0;
-                        const weeks = [{id:1,v:item.week1},{id:2,v:item.week2},{id:3,v:item.week3},{id:4,v:item.week4}];
-
-                        return (
-                            <div key={item.month} onClick={() => handleMonthClick(item)} 
-                                className={`relative group cursor-pointer transition-all duration-300 border rounded-xl p-4 flex flex-col gap-3 ${isSet ? 'bg-white border-green-200 shadow-sm hover:shadow-md hover:border-green-400' : 'bg-gray-50/50 border-dashed border-gray-300 hover:bg-white hover:border-gray-400'}`}
-                            >
-                                <div className="flex justify-between items-center">
-                                    <span className={`text-lg font-bold ${isSet ? 'text-gray-800' : 'text-gray-400'}`}>{MONTH_NAMES[item.month]}</span>
-                                    <Calendar className={`h-4 w-4 ${isSet ? 'text-green-500' : 'text-gray-300'}`} />
-                                </div>
-                                <div className="pt-2">
-                                    {isSet ? (
-                                        <div className="text-2xl font-bold text-gray-900"><span className="text-sm text-gray-500 font-normal mr-1">NPR</span>{item.amount.toLocaleString()}</div>
-                                    ) : <div className="text-sm text-gray-400 font-medium py-2">Set Goal</div>}
-                                </div>
-                                {isSet && (
-                                    <div className="mt-2 pt-3 border-t border-gray-100 grid grid-cols-4 gap-1">
-                                        {weeks.map((w) => (
-                                            <div key={w.id} className="flex flex-col items-center">
-                                                <div className="text-[10px] text-gray-400 uppercase">W{w.id}</div>
-                                                <div className={`h-8 w-full rounded-md flex items-center justify-center text-[10px] font-semibold ${w.v > 0 ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
-                                                    {w.v > 0 ? (w.v/1000).toFixed(1)+'k' : '-'}
-                                                </div>
-                                            </div>
-                                        ))}
+                {plannerLoading ? (
+                    <div className="flex justify-center p-12"><Loader2 className="animate-spin text-green-600" /></div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {planData.map((item) => {
+                            const isSet = item.amount > 0;
+                            return (
+                                <div key={item.month} onClick={() => handleMonthClick(item)} 
+                                    className={`relative group cursor-pointer transition-all duration-300 border rounded-xl p-4 flex flex-col gap-3 min-h-[100px] justify-between ${isSet ? 'bg-white border-green-200 shadow-sm hover:shadow-md hover:border-green-400' : 'bg-gray-50/50 border-dashed border-gray-300 hover:bg-white hover:border-gray-400'}`}
+                                >
+                                    <div className="flex justify-between items-center">
+                                        <span className={`text-lg font-bold ${isSet ? 'text-gray-800' : 'text-gray-400'}`}>{MONTH_NAMES[item.month]}</span>
+                                        <Calendar className={`h-4 w-4 ${isSet ? 'text-green-500' : 'text-gray-300'}`} />
                                     </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
+                                    <div className="text-center">
+                                        {isSet ? (
+                                            <div className="text-2xl font-bold text-gray-900"><span className="text-sm text-gray-500 font-normal mr-1">NPR</span>{item.amount.toLocaleString()}</div>
+                                        ) : <div className="text-sm text-gray-400 font-medium">Set Goal</div>}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         )}
 
@@ -163,7 +148,6 @@ export default function Income() {
                     </Button>
                 </div>
                 
-                {/* Filters */}
                 <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col sm:flex-row gap-4 items-end sm:items-center">
                     <div className="grid grid-cols-2 gap-4 w-full sm:w-auto">
                         <div className="space-y-1"><span className="text-xs font-semibold text-gray-500 uppercase">From</span><Input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} /></div>

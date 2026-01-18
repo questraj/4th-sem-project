@@ -8,23 +8,16 @@ import api from "@/api/axios";
 const MONTHS = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 export default function SetMonthlyIncomeModal({ isOpen, onClose, onSuccess, monthData, year }) {
-  const [weeks, setWeeks] = useState({ w1: "", w2: "", w3: "", w4: "" });
+  const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (monthData) {
-        setWeeks({
-            w1: monthData.week1 || "",
-            w2: monthData.week2 || "",
-            w3: monthData.week3 || "",
-            w4: monthData.week4 || ""
-        });
+        setAmount(monthData.amount > 0 ? monthData.amount : "");
     }
   }, [monthData, isOpen]);
 
   if (!isOpen || !monthData) return null;
-
-  const total = [weeks.w1, weeks.w2, weeks.w3, weeks.w4].reduce((acc, curr) => acc + (parseFloat(curr) || 0), 0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,10 +26,7 @@ export default function SetMonthlyIncomeModal({ isOpen, onClose, onSuccess, mont
       await api.post("/income/setMonthlyPlan.php", {
         year,
         month: monthData.month,
-        week1: weeks.w1 || 0,
-        week2: weeks.w2 || 0,
-        week3: weeks.w3 || 0,
-        week4: weeks.w4 || 0
+        amount: amount || 0
       });
       onSuccess();
       onClose();
@@ -45,10 +35,6 @@ export default function SetMonthlyIncomeModal({ isOpen, onClose, onSuccess, mont
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleChange = (key, value) => {
-    setWeeks(prev => ({ ...prev, [key]: value }));
   };
 
   return (
@@ -61,28 +47,22 @@ export default function SetMonthlyIncomeModal({ isOpen, onClose, onSuccess, mont
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-                <Label className="text-xs text-gray-500">Week 1</Label>
-                <Input type="number" value={weeks.w1} onChange={e => handleChange('w1', e.target.value)} placeholder="0" />
-            </div>
-            <div className="space-y-1">
-                <Label className="text-xs text-gray-500">Week 2</Label>
-                <Input type="number" value={weeks.w2} onChange={e => handleChange('w2', e.target.value)} placeholder="0" />
-            </div>
-            <div className="space-y-1">
-                <Label className="text-xs text-gray-500">Week 3</Label>
-                <Input type="number" value={weeks.w3} onChange={e => handleChange('w3', e.target.value)} placeholder="0" />
-            </div>
-            <div className="space-y-1">
-                <Label className="text-xs text-gray-500">Week 4</Label>
-                <Input type="number" value={weeks.w4} onChange={e => handleChange('w4', e.target.value)} placeholder="0" />
-            </div>
+          <div className="space-y-2">
+            <Label>Monthly Goal (NPR)</Label>
+            <Input 
+                type="number" 
+                value={amount} 
+                onChange={e => setAmount(e.target.value)} 
+                placeholder="0.00" 
+                autoFocus
+                className="text-lg font-medium"
+            />
           </div>
           
-          <div className="bg-green-50 p-4 rounded-lg flex justify-between items-center border border-green-100">
-             <span className="text-sm font-medium text-green-800">Total Monthly Goal:</span>
-             <span className="text-xl font-bold text-green-700">NPR {total.toLocaleString()}</span>
+          <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+             <p className="text-sm text-green-800">
+                This amount contributes to your <strong>Yearly Total</strong>.
+             </p>
           </div>
 
           <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={loading}>
