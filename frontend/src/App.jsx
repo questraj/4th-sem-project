@@ -8,6 +8,7 @@ import Budgets from '@/pages/budgets/Budgets'; // Add this import
 import Expenses from '@/pages/expenses/Expenses'; 
 import Categories from '@/pages/categories/Categories'; // <--- CHECK THIS LINE
 import Profile from './pages/profile/Profile';
+import Income from '@/pages/income/Income'; 
 
 const PrivateRoute = ({ children }) => {
   const { user } = useAuth();
@@ -53,6 +54,11 @@ function App() {
            <Profile />
           </PrivateRoute>
           } />
+          <Route path="/income" element={
+          <PrivateRoute>
+          <Income />
+          </PrivateRoute>
+           } />
           
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>

@@ -5,20 +5,24 @@ import {
   PieChart, 
   Wallet, 
   LogOut,
-  Layers 
+  Layers,
+  Banknote // Ensure this is imported
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Sidebar({ className, isCollapsed }) {
   const { logout } = useAuth();
 
+  // Updated Order: Income is now below Analytics
   const navItems = [
     { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
     { label: "Analytics", icon: PieChart, path: "/analytics" },
+    { label: "Income", icon: Banknote, path: "/income" },
     { label: "Budgets", icon: Wallet, path: "/budgets" },
     { label: "Expenses", icon: Wallet, path: "/expenses" },
     { label: "Categories", icon: Layers, path: "/categories" },
   ];
+
   return (
     <aside 
       className={cn(
@@ -32,7 +36,7 @@ export default function Sidebar({ className, isCollapsed }) {
         "h-16 flex items-center border-b border-gray-100",
         isCollapsed ? "justify-center px-0" : "px-6 gap-3"
       )}>
-        <div className="h-8 w-8 bg-linear-to-tr from-blue-600 to-blue-400 rounded-lg shrink-0 shadow-sm"></div>
+        <div className="h-8 w-8 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-lg shrink-0 shadow-sm"></div>
         
         <div className={cn(
           "font-bold text-lg tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300",
