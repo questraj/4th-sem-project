@@ -3,196 +3,194 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, Trash2, Plus, Banknote, Search, X, Filter, Loader2, AlertCircle } from "lucide-react";
+import { Pencil, Trash2, Plus, Banknote, Search, X, Filter, Loader2, AlertCircle, ChevronLeft, ChevronRight, Calculator, Calendar, List, LayoutGrid } from "lucide-react";
 import api from "@/api/axios";
 import AddIncomeModal from "@/components/dashboard/AddIncomeModal";
+import SetMonthlyIncomeModal from "@/components/dashboard/SetMonthlyIncomeModal"; // New Import
+
+const MONTH_NAMES = ["", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
 export default function Income() {
-  const [incomes, setIncomes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(""); // New Error State
+  const [activeTab, setActiveTab] = useState("planner"); // 'planner' or 'history'
   
-  // Filters
+  // --- HISTORY STATES ---
+  const [incomes, setIncomes] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [error, setError] = useState(""); 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editData, setEditData] = useState(null);
 
-  const fetchIncomes = useCallback(async (start = "", end = "") => {
-    setLoading(true);
+  // --- PLANNER STATES ---
+  const [plannerLoading, setPlannerLoading] = useState(false);
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [planData, setPlanData] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+
+  // --- FETCH HISTORY ---
+  const fetchHistory = useCallback(async (start = "", end = "") => {
+    setHistoryLoading(true);
     setError("");
     try {
       let url = "/income/getAllIncomes.php";
       if (start && end) url += `?start_date=${start}&end_date=${end}`;
-      
-      console.log("Fetching from:", url); // DEBUG LOG
-
       const res = await api.get(url);
-      
-      console.log("API Response:", res.data); // DEBUG LOG
-
-      if (res.data.success) {
-        setIncomes(res.data.data || []); // Ensure it's an array
-      } else {
-        setError("Failed to load data: " + res.data.message);
-      }
-    } catch (error) {
-      console.error("Fetch Error:", error);
-      setError("Server Error: Check Console for details.");
-    } finally {
-      setLoading(false);
-    }
+      if (res.data.success) setIncomes(res.data.data || []);
+      else setError(res.data.message);
+    } catch (error) { console.error(error); setError("Server error"); } 
+    finally { setHistoryLoading(false); }
   }, []);
 
-  useEffect(() => {
-    fetchIncomes();
-  }, [fetchIncomes]);
-
-  const handleFilter = () => {
-    if (startDate && endDate) {
-        fetchIncomes(startDate, endDate);
-    } else {
-        alert("Please select both Start and End dates");
-    }
-  };
-
-  const handleReset = () => {
-    setStartDate("");
-    setEndDate("");
-    fetchIncomes();
-  };
-
-  const handleDelete = async (id) => {
-    if(!window.confirm("Are you sure you want to delete this income record?")) return;
+  // --- FETCH PLANNER ---
+  const fetchPlanner = useCallback(async () => {
+    setPlannerLoading(true);
     try {
-        await api.post("/income/deleteIncome.php", { id });
-        fetchIncomes(startDate, endDate);
-    } catch(e) { console.error(e); }
-  };
+      const res = await api.get(`/income/getYearlyPlan.php?year=${year}`);
+      if (res.data.success) setPlanData(res.data.data);
+    } catch (error) { console.error(error); } 
+    finally { setPlannerLoading(false); }
+  }, [year]);
 
-  const openAdd = () => { setEditData(null); setIsModalOpen(true); };
-  const openEdit = (item) => { setEditData(item); setIsModalOpen(true); };
+  useEffect(() => {
+    if (activeTab === "history") fetchHistory();
+    else fetchPlanner();
+  }, [activeTab, fetchHistory, fetchPlanner]);
+
+  // --- HANDLERS ---
+  const handleFilter = () => { if (startDate && endDate) fetchHistory(startDate, endDate); else alert("Select dates"); };
+  const handleReset = () => { setStartDate(""); setEndDate(""); fetchHistory(); };
+  const handleDelete = async (id) => { if(confirm("Delete?")) { await api.post("/income/deleteIncome.php", { id }); fetchHistory(startDate, endDate); }};
+  
+  const handleMonthClick = (item) => { setSelectedMonth(item); setIsPlanModalOpen(true); };
+
+  const totalYearlyPlan = planData.reduce((acc, curr) => acc + curr.amount, 0);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900">Income</h1>
-                <p className="text-muted-foreground">Track your earnings and revenue sources.</p>
+                <h1 className="text-3xl font-bold tracking-tight text-gray-900">Income Management</h1>
+                <p className="text-muted-foreground">Plan your goals and track actual earnings.</p>
             </div>
-            <Button onClick={openAdd} className="bg-green-600 hover:bg-green-700 shadow-sm">
-                <Plus className="mr-2 h-4 w-4" /> Add Income
-            </Button>
-        </div>
-
-        {/* Filter Section */}
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col sm:flex-row gap-4 items-end sm:items-center">
-            <div className="grid grid-cols-2 gap-4 w-full sm:w-auto">
-                <div className="space-y-1">
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">From</span>
-                    <Input 
-                        type="date" 
-                        value={startDate} 
-                        onChange={(e) => setStartDate(e.target.value)} 
-                        className="bg-gray-50 border-gray-200"
-                        onClick={(e) => e.target.showPicker()} 
-                    />
-                </div>
-                <div className="space-y-1">
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">To</span>
-                    <Input 
-                        type="date" 
-                        value={endDate} 
-                        onChange={(e) => setEndDate(e.target.value)} 
-                        className="bg-gray-50 border-gray-200"
-                        onClick={(e) => e.target.showPicker()} 
-                    />
-                </div>
-            </div>
-            <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                <Button onClick={handleFilter} className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700">
-                    <Filter className="mr-2 h-4 w-4" /> Filter
-                </Button>
-                {(startDate || endDate) && (
-                    <Button variant="outline" onClick={handleReset} className="flex-1 sm:flex-none text-red-600 hover:bg-red-50 border-red-100">
-                        <X className="mr-2 h-4 w-4" /> Reset
-                    </Button>
-                )}
+            
+            <div className="bg-gray-100 p-1 rounded-lg flex gap-1">
+                <button 
+                    onClick={() => setActiveTab("planner")}
+                    className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${activeTab === 'planner' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    <LayoutGrid size={16} /> Planner
+                </button>
+                <button 
+                    onClick={() => setActiveTab("history")}
+                    className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${activeTab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    <List size={16} /> History
+                </button>
             </div>
         </div>
 
-        {/* Error Display */}
-        {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-lg flex items-center gap-2 border border-red-100">
-                <AlertCircle className="h-5 w-5" /> {error}
+        {/* --- PLANNER VIEW --- */}
+        {activeTab === "planner" && (
+            <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex justify-between items-center">
+                    <Card className="bg-gradient-to-r from-green-600 to-emerald-600 text-white border-none shadow-lg w-full md:w-auto min-w-[300px]">
+                        <CardContent className="flex items-center justify-between p-6">
+                            <div>
+                                <p className="text-green-100 font-medium mb-1">Total Yearly Goal</p>
+                                <h2 className="text-3xl font-bold">NPR {totalYearlyPlan.toLocaleString()}</h2>
+                            </div>
+                            <div className="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                                <Calculator className="h-5 w-5 text-white" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <div className="flex items-center gap-4 bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+                        <Button variant="ghost" size="icon" onClick={() => setYear(year - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+                        <span className="text-xl font-bold text-gray-800 w-16 text-center">{year}</span>
+                        <Button variant="ghost" size="icon" onClick={() => setYear(year + 1)}><ChevronRight className="h-4 w-4" /></Button>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {planData.map((item) => {
+                        const isSet = item.amount > 0;
+                        const weeks = [{id:1,v:item.week1},{id:2,v:item.week2},{id:3,v:item.week3},{id:4,v:item.week4}];
+
+                        return (
+                            <div key={item.month} onClick={() => handleMonthClick(item)} 
+                                className={`relative group cursor-pointer transition-all duration-300 border rounded-xl p-4 flex flex-col gap-3 ${isSet ? 'bg-white border-green-200 shadow-sm hover:shadow-md hover:border-green-400' : 'bg-gray-50/50 border-dashed border-gray-300 hover:bg-white hover:border-gray-400'}`}
+                            >
+                                <div className="flex justify-between items-center">
+                                    <span className={`text-lg font-bold ${isSet ? 'text-gray-800' : 'text-gray-400'}`}>{MONTH_NAMES[item.month]}</span>
+                                    <Calendar className={`h-4 w-4 ${isSet ? 'text-green-500' : 'text-gray-300'}`} />
+                                </div>
+                                <div className="pt-2">
+                                    {isSet ? (
+                                        <div className="text-2xl font-bold text-gray-900"><span className="text-sm text-gray-500 font-normal mr-1">NPR</span>{item.amount.toLocaleString()}</div>
+                                    ) : <div className="text-sm text-gray-400 font-medium py-2">Set Goal</div>}
+                                </div>
+                                {isSet && (
+                                    <div className="mt-2 pt-3 border-t border-gray-100 grid grid-cols-4 gap-1">
+                                        {weeks.map((w) => (
+                                            <div key={w.id} className="flex flex-col items-center">
+                                                <div className="text-[10px] text-gray-400 uppercase">W{w.id}</div>
+                                                <div className={`h-8 w-full rounded-md flex items-center justify-center text-[10px] font-semibold ${w.v > 0 ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                                                    {w.v > 0 ? (w.v/1000).toFixed(1)+'k' : '-'}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         )}
 
-        <Card>
-            <CardHeader className="border-b bg-gray-50/50 py-4">
-                <CardTitle className="flex gap-2 text-lg text-gray-800">
-                    <Banknote className="h-5 w-5 text-green-600"/> Income History
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-                {loading ? (
-                    <div className="flex justify-center items-center py-12 text-gray-500">
-                        <Loader2 className="h-6 w-6 animate-spin mr-2 text-blue-600" /> Loading records...
+        {/* --- HISTORY VIEW --- */}
+        {activeTab === "history" && (
+            <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex justify-end">
+                    <Button onClick={() => { setEditData(null); setIsAddModalOpen(true); }} className="bg-green-600 hover:bg-green-700 shadow-sm">
+                        <Plus className="mr-2 h-4 w-4" /> Add Transaction
+                    </Button>
+                </div>
+                
+                {/* Filters */}
+                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col sm:flex-row gap-4 items-end sm:items-center">
+                    <div className="grid grid-cols-2 gap-4 w-full sm:w-auto">
+                        <div className="space-y-1"><span className="text-xs font-semibold text-gray-500 uppercase">From</span><Input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} /></div>
+                        <div className="space-y-1"><span className="text-xs font-semibold text-gray-500 uppercase">To</span><Input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} /></div>
                     </div>
-                ) : incomes.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
-                        <Search className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                        <p>No income records found.</p>
-                    </div>
-                ) : (
-                    <div className="relative w-full overflow-auto">
-                        <table className="w-full caption-bottom text-sm text-left">
-                            <thead className="[&_tr]:border-b bg-gray-50">
-                                <tr className="border-b">
-                                    <th className="h-12 px-6 font-medium text-gray-500">Date</th>
-                                    <th className="h-12 px-6 font-medium text-gray-500">Source</th>
-                                    <th className="h-12 px-6 font-medium text-gray-500">Description</th>
-                                    <th className="h-12 px-6 font-medium text-gray-500 text-right">Amount</th>
-                                    <th className="h-12 px-6 font-medium text-gray-500 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {incomes.map((inc) => (
-                                    <tr key={inc.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="p-6 align-middle">{inc.date}</td>
-                                        <td className="p-6 align-middle font-semibold text-gray-700">{inc.source}</td>
-                                        <td className="p-6 align-middle text-gray-500 max-w-[200px] truncate">{inc.description || "-"}</td>
-                                        <td className="p-6 align-middle text-right font-bold text-green-600">
-                                            + NPR {parseFloat(inc.amount).toLocaleString()}
-                                        </td>
-                                        <td className="p-6 align-middle text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(inc)}>
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(inc.id)}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+                    <div className="flex gap-2"><Button onClick={handleFilter} className="bg-blue-600"><Filter className="mr-2 h-4 w-4"/> Filter</Button>{(startDate || endDate) && <Button variant="outline" onClick={handleReset} className="text-red-600"><X className="mr-2 h-4 w-4"/> Reset</Button>}</div>
+                </div>
 
-        <AddIncomeModal 
-            isOpen={isModalOpen} 
-            onClose={() => setIsModalOpen(false)} 
-            onSuccess={() => fetchIncomes(startDate, endDate)} 
-            editData={editData} 
-        />
+                <Card>
+                    <CardHeader className="border-b bg-gray-50/50 py-4"><CardTitle className="text-lg text-gray-800">Recent Transactions</CardTitle></CardHeader>
+                    <CardContent className="p-0">
+                        {historyLoading ? <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-green-600"/></div> : incomes.length === 0 ? <div className="p-12 text-center text-gray-400">No records found.</div> : (
+                            <div className="relative w-full overflow-auto">
+                                <table className="w-full caption-bottom text-sm text-left">
+                                    <thead className="[&_tr]:border-b bg-gray-50"><tr className="border-b"><th className="h-12 px-6 font-medium text-gray-500">Date</th><th className="h-12 px-6 font-medium text-gray-500">Source</th><th className="h-12 px-6 font-medium text-gray-500">Description</th><th className="h-12 px-6 font-medium text-gray-500 text-right">Amount</th><th className="h-12 px-6 font-medium text-gray-500 text-right">Actions</th></tr></thead>
+                                    <tbody className="divide-y divide-gray-100">{incomes.map((inc) => (<tr key={inc.id} className="hover:bg-gray-50"><td className="p-6">{inc.date}</td><td className="p-6 font-semibold">{inc.source}</td><td className="p-6 text-gray-500 truncate">{inc.description||"-"}</td><td className="p-6 text-right font-bold text-green-600">+ NPR {parseFloat(inc.amount).toLocaleString()}</td><td className="p-6 text-right flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={()=>{setEditData(inc);setIsAddModalOpen(true);}}><Pencil className="h-4 w-4 text-blue-600"/></Button><Button variant="ghost" size="icon" onClick={()=>handleDelete(inc.id)}><Trash2 className="h-4 w-4 text-red-600"/></Button></td></tr>))}</tbody>
+                                </table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        )}
+
+        <AddIncomeModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSuccess={() => fetchHistory(startDate, endDate)} editData={editData} />
+        <SetMonthlyIncomeModal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} onSuccess={fetchPlanner} monthData={selectedMonth} year={year} />
+
       </div>
     </DashboardLayout>
   );
