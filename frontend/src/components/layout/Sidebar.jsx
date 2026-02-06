@@ -6,14 +6,14 @@ import {
   Wallet, 
   LogOut,
   Layers,
-  Banknote // Ensure this is imported
+  Banknote,
+  ScrollText // New Icon for Activity
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Sidebar({ className, isCollapsed }) {
   const { logout } = useAuth();
 
-  // Updated Order: Income is now below Analytics
   const navItems = [
     { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
     { label: "Analytics", icon: PieChart, path: "/analytics" },
@@ -21,6 +21,8 @@ export default function Sidebar({ className, isCollapsed }) {
     { label: "Budgets", icon: Wallet, path: "/budgets" },
     { label: "Expenses", icon: Wallet, path: "/expenses" },
     { label: "Categories", icon: Layers, path: "/categories" },
+    // NEW ITEM ADDED HERE
+    { label: "Activity", icon: ScrollText, path: "/activity" }, 
   ];
 
   return (
@@ -31,13 +33,11 @@ export default function Sidebar({ className, isCollapsed }) {
         className
       )}
     >
-      
       <div className={cn(
         "h-16 flex items-center border-b border-gray-100",
         isCollapsed ? "justify-center px-0" : "px-6 gap-3"
       )}>
         <div className="h-8 w-8 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-lg shrink-0 shadow-sm"></div>
-        
         <div className={cn(
           "font-bold text-lg tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300",
           isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
@@ -63,7 +63,6 @@ export default function Sidebar({ className, isCollapsed }) {
             }
           >
             <item.icon className={cn("shrink-0", isCollapsed ? "h-6 w-6" : "h-5 w-5")} />
-            
             <span className={cn(
               "transition-all duration-300 overflow-hidden",
               isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
