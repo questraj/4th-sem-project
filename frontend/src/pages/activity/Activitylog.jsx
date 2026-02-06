@@ -1,33 +1,39 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarClock, Activity, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button"; // Import Button
+import { CalendarClock, Activity, Plus } from "lucide-react"; // Import Plus icon
 import api from "@/api/axios";
+import AddExpenseModal from "@/components/dashboard/AddExpenseModal"; // Import the Modal
 
 export default function ActivityLog() {
   const [logs, setLogs] = useState([]);
   const [pending, setPending] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // State for the Add Modal
+  const [isAddOpen, setIsAddOpen] = useState(false);
+
+  // Defined as useCallback so we can reuse it for refreshing data
+  const fetchData = useCallback(async () => {
+    try {
+      const [logRes, pendingRes] = await Promise.all([
+          api.get("/user/getLogs.php"),
+          api.get("/expense/getPendingExpenses.php")
+      ]);
+
+      if (logRes.data.success) setLogs(logRes.data.data);
+      if (pendingRes.data.success) setPending(pendingRes.data.data);
+    } catch (error) {
+      console.error("Failed to fetch activity data", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [logRes, pendingRes] = await Promise.all([
-            api.get("/user/getLogs.php"),
-            api.get("/expense/getPendingExpenses.php") // We need to add this small API endpoint
-        ]);
-
-        if (logRes.data.success) setLogs(logRes.data.data);
-        if (pendingRes.data.success) setPending(pendingRes.data.data);
-      } catch (error) {
-        console.error("Failed to fetch activity data", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   return (
     <DashboardLayout>
@@ -39,10 +45,20 @@ export default function ActivityLog() {
 
         {/* 1. UPCOMING EXPENSES SECTION */}
         <Card className="border-l-4 border-l-yellow-500 shadow-sm">
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-yellow-700">
                     <CalendarClock className="h-5 w-5" /> Upcoming Scheduled Expenses
                 </CardTitle>
+                
+                {/* NEW: Button to open Add Modal */}
+                <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-yellow-700 border-yellow-200 hover:bg-yellow-50"
+                    onClick={() => setIsAddOpen(true)}
+                >
+                    <Plus className="h-4 w-4 mr-1" /> Schedule New
+                </Button>
             </CardHeader>
             <CardContent>
                 {loading ? <p className="text-sm text-gray-400">Loading...</p> : 
@@ -53,7 +69,7 @@ export default function ActivityLog() {
                 ) : (
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {pending.map((item) => (
-                            <div key={item.id} className="bg-yellow-50/50 border border-yellow-100 p-4 rounded-xl flex flex-col justify-between">
+                            <div key={item.id} className="bg-yellow-50/50 border border-yellow-100 p-4 rounded-xl flex flex-col justify-between hover:shadow-md transition-shadow">
                                 <div>
                                     <div className="flex justify-between items-start mb-2">
                                         <span className="text-xs font-bold text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">{item.date}</span>
@@ -115,6 +131,14 @@ export default function ActivityLog() {
                 </div>
             </CardContent>
         </Card>
+
+        {/* Reuse the Add Expense Modal */}
+        <AddExpenseModal 
+            isOpen={isAddOpen} 
+            onClose={() => setIsAddOpen(false)} 
+            onSuccess={fetchData} // Refresh list on success
+        />
+
       </div>
     </DashboardLayout>
   );
