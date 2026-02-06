@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Lock, Save, Loader2, CreditCard, Pencil, X } from "lucide-react";
+import { User, Lock, Save, Loader2, CreditCard, Pencil, X, Activity } from "lucide-react";
 import api from "@/api/axios";
 
 export default function Profile() {
@@ -12,15 +12,19 @@ export default function Profile() {
   const [passLoading, setPassLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
+  // Profile Data
   const [formData, setFormData] = useState({
     first_name: "", middle_name: "", last_name: "", email: "", bank_name: "", bank_account_no: ""
   });
-
   const [originalData, setOriginalData] = useState({});
   const [passData, setPassData] = useState({ current_password: "", new_password: "", confirm_password: "" });
 
+  // Logs Data
+  const [logs, setLogs] = useState([]);
+
   useEffect(() => {
     fetchProfile();
+    fetchLogs();
   }, []);
 
   const fetchProfile = async () => {
@@ -31,6 +35,15 @@ export default function Profile() {
         setOriginalData(res.data.data);
       }
     } catch (e) { console.error(e); }
+  };
+
+  const fetchLogs = async () => {
+    try {
+        const res = await api.get("/user/getLogs.php");
+        if (res.data.success) {
+            setLogs(res.data.data);
+        }
+    } catch (e) { console.error("Failed to load logs", e); }
   };
 
   const handleInfoSubmit = async (e) => {
@@ -96,6 +109,7 @@ export default function Profile() {
 
         <div className="grid gap-6 md:grid-cols-2">
             
+            {/* 1. PERSONAL INFO CARD */}
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
                     <CardTitle className="flex items-center gap-2 text-lg">
@@ -150,7 +164,8 @@ export default function Profile() {
                 </CardContent>
             </Card>
 
-            <Card>
+            {/* 2. SECURITY CARD */}
+            <Card className="h-fit">
                 <CardHeader className="border-b pb-4">
                     <CardTitle className="flex items-center gap-2 text-lg">
                         <Lock className="h-5 w-5 text-orange-600"/> Security
@@ -182,6 +197,47 @@ export default function Profile() {
                 </CardContent>
             </Card>
         </div>
+
+        {/* 3. SYSTEM ACTIVITY LOG (NEW) */}
+        <Card className="mt-6">
+           <CardHeader className="border-b pb-4">
+               <CardTitle className="flex items-center gap-2 text-lg">
+                   <Activity className="h-5 w-5 text-gray-700"/> System Activity Log
+               </CardTitle>
+           </CardHeader>
+           <CardContent className="pt-6">
+               <div className="h-64 overflow-y-auto custom-scrollbar border rounded-lg bg-gray-50/50 p-3">
+                   {logs.length > 0 ? (
+                       <div className="space-y-3">
+                           {logs.map((log, i) => (
+                               <div key={i} className="flex justify-between items-center text-sm p-3 bg-white border border-gray-100 rounded-lg shadow-sm">
+                                   <div className="flex items-center gap-3">
+                                       <div className={`w-2 h-2 rounded-full ${
+                                           log.action.includes('ADDED') ? 'bg-green-500' : 
+                                           log.action.includes('SCHEDULED') ? 'bg-yellow-500' :
+                                           log.action.includes('CONFIRMED') ? 'bg-blue-500' : 'bg-gray-400'
+                                       }`}></div>
+                                       <div>
+                                           <span className="font-semibold text-gray-800 block capitalize">{log.action.toLowerCase().replace('_', ' ')}</span>
+                                           <span className="text-gray-500 text-xs">{log.details}</span>
+                                       </div>
+                                   </div>
+                                   <span className="text-xs text-gray-400 font-medium whitespace-nowrap bg-gray-50 px-2 py-1 rounded">
+                                       {new Date(log.created_at).toLocaleString()}
+                                   </span>
+                               </div>
+                           ))}
+                       </div>
+                   ) : (
+                       <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                           <Activity className="h-8 w-8 mb-2 opacity-20" />
+                           <p>No system activity recorded yet.</p>
+                       </div>
+                   )}
+               </div>
+           </CardContent>
+       </Card>
+
       </div>
     </DashboardLayout>
   );
