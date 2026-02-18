@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, Loader2, Calendar } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Loader2, Check, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,106 +7,232 @@ import api from "@/api/axios";
 
 export default function ScheduleExpenseModal({ isOpen, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [categories, setCategories] = useState([]);
+  const [activeSubCategories, setActiveSubCategories] = useState([]);
+  
+  // UI States for adding new items on the fly
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isAddingSubCategory, setIsAddingSubCategory] = useState(false);
+  const [newSubCategoryName, setNewSubCategoryName] = useState("");
+
   const [formData, setFormData] = useState({
     amount: "",
-    category_id: "1",
-    date: "",
-    description: "",
-    source: "Cash"
+    category_id: "", 
+    sub_category_id: "", 
+    date: "", // Leave empty to force selection
+    source: "Cash",
+    description: ""
   });
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (isOpen) {
+        fetchCategories();
+        // Set default date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        setFormData(prev => ({ ...prev, date: tomorrow.toISOString().split('T')[0] }));
+    }
+  }, [isOpen]);
 
-  const validate = () => {
-    let newErrors = {};
-    const amountRegex = /^\d+(\.\d{1,2})?$/; // Only numbers and up to 2 decimal places
-    const today = new Date().toISOString().split('T')[0];
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get("/category/getCategories.php");
+      if (res.data.success) {
+        setCategories(res.data.data);
+        if (res.data.data.length > 0) {
+            handleMainCategorySelect(res.data.data[0].id, res.data.data);
+        }
+      }
+    } catch (error) { console.error(error); }
+  };
 
-    if (!amountRegex.test(formData.amount) || parseFloat(formData.amount) <= 0) {
-      newErrors.amount = "Please enter a valid positive amount.";
-    }
-    if (!formData.date || formData.date <= today) {
-      newErrors.date = "Date must be in the future.";
-    }
-    if (formData.description.length > 100) {
-      newErrors.description = "Description too long (max 100 chars).";
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleMainCategorySelect = (catId, allCategories = categories) => {
+    const selectedCat = allCategories.find(c => c.id == catId);
+    setFormData(prev => ({ ...prev, category_id: catId, sub_category_id: "" }));
+    setActiveSubCategories(selectedCat?.sub_categories || []);
+    setIsAddingSubCategory(false);
+  };
+
+  const handleCategoryChange = (e) => {
+    const value = e.target.value;
+    if (value === "ADD_NEW_CAT") setIsAddingCategory(true);
+    else handleMainCategorySelect(value);
+  };
+
+  const handleAddNewCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    setLoading(true);
+    try {
+      const res = await api.post("/category/addCategory.php", { name: newCategoryName });
+      if (res.data.success) {
+        const newCat = { id: res.data.data.id, category_name: res.data.data.name, sub_categories: [] };
+        const updatedList = [...categories, newCat];
+        setCategories(updatedList);
+        handleMainCategorySelect(newCat.id, updatedList);
+        setIsAddingCategory(false);
+        setNewCategoryName("");
+      }
+    } catch (error) { console.error(error); } finally { setLoading(false); }
+  };
+
+  const handleAddNewSubCategory = async () => {
+    if (!newSubCategoryName.trim()) return;
+    setLoading(true);
+    try {
+      const res = await api.post("/category/addSubCategory.php", { 
+        category_id: formData.category_id,
+        name: newSubCategoryName 
+      });
+      if (res.data.success) {
+        const newSub = { id: res.data.data.id, name: res.data.data.name };
+        setActiveSubCategories(prev => [...prev, newSub]);
+        setFormData(prev => ({...prev, sub_category_id: newSub.id}));
+        setIsAddingSubCategory(false);
+        setNewSubNameInput("");
+      }
+    } catch (error) { console.error(error); } finally { setLoading(false); }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (new Date(formData.date) <= new Date().setHours(0,0,0,0)) {
+        alert("Please select a future date for scheduling.");
+        return;
+    }
 
     setLoading(true);
     try {
-      // We use the same addExpense endpoint because the BE logic 
-      // already handles dates > today by putting them in future_expenses
-      const data = new FormData();
-      Object.keys(formData).forEach(key => data.append(key, formData[key]));
-      
-      const res = await api.post("/expense/addExpense.php", data);
+      const res = await api.post("/expense/addExpense.php", formData);
       if (res.data.success) {
         onSuccess();
         onClose();
+      } else {
+        alert(res.data.message);
       }
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error("Scheduling failed", error);
     } finally {
       setLoading(false);
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md p-6 z-50 animate-in fade-in zoom-in-95">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-blue-800 flex items-center gap-2">
-            <Calendar size={20}/> Schedule Future Expense
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 z-50 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+        
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+              <Calendar className="text-blue-600" size={22} /> Schedule Future Expense
           </h2>
-          <button onClick={onClose}><X size={20} className="text-gray-400"/></button>
+          <button onClick={onClose}><X size={20} className="text-gray-500" /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          
+          <div className="space-y-2">
             <Label>Amount (NPR)</Label>
             <Input 
-              placeholder="0.00" 
-              value={formData.amount} 
-              onChange={e => setFormData({...formData, amount: e.target.value})}
-              className={errors.amount ? "border-red-500" : ""}
+                type="number" 
+                step="0.01" 
+                required 
+                value={formData.amount} 
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })} 
+                placeholder="0.00" 
+                className="text-lg font-semibold"
             />
-            {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount}</p>}
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label>Future Date</Label>
             <Input 
-              type="date" 
-              value={formData.date} 
-              onChange={e => setFormData({...formData, date: e.target.value})}
-              className={errors.date ? "border-red-500" : ""}
-              onClick={(e) => e.target.showPicker()}
-            />
-            {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
-          </div>
-
-          <div>
-            <Label>Description</Label>
-            <Input 
-              placeholder="What is this for?" 
-              value={formData.description} 
-              onChange={e => setFormData({...formData, description: e.target.value})}
+                type="date" 
+                required 
+                value={formData.date} 
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })} 
+                onClick={(e) => e.target.showPicker()} 
             />
           </div>
 
-          <Button type="submit" className="w-full bg-blue-600" disabled={loading}>
-            {loading ? <Loader2 className="animate-spin mr-2" /> : null}
-            Schedule Transaction
-          </Button>
+          <div className="grid grid-cols-2 gap-4">
+              {/* Category */}
+              <div className="space-y-2">
+                <Label>Category</Label>
+                {!isAddingCategory ? (
+                    <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm"
+                        value={formData.category_id} 
+                        onChange={handleCategoryChange}
+                    >
+                        {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.category_name}</option>)}
+                        <option value="ADD_NEW_CAT" className="font-bold text-blue-600">+ New Category</option>
+                    </select>
+                ) : (
+                    <div className="flex gap-1">
+                        <Input placeholder="New..." value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} className="h-10" />
+                        <Button type="button" size="icon" onClick={handleAddNewCategory} className="bg-green-600"><Check size={14} /></Button>
+                    </div>
+                )}
+              </div>
+
+              {/* Sub-Category */}
+              <div className="space-y-2">
+                <Label>Sub Category</Label>
+                {!isAddingSubCategory ? (
+                    <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm"
+                        value={formData.sub_category_id} 
+                        onChange={(e) => {
+                            if(e.target.value === "ADD_NEW_SUB") setIsAddingSubCategory(true);
+                            else setFormData({ ...formData, sub_category_id: e.target.value });
+                        }}
+                    >
+                        <option value="">-- None --</option>
+                        {activeSubCategories.map((sub) => <option key={sub.id} value={sub.id}>{sub.name}</option>)}
+                        <option value="ADD_NEW_SUB" className="font-bold text-purple-600">+ New Sub</option>
+                    </select>
+                ) : (
+                     <div className="flex gap-1">
+                        <Input placeholder="New..." value={newSubCategoryName} onChange={(e) => setNewSubCategoryName(e.target.value)} className="h-10" />
+                        <Button type="button" size="icon" onClick={handleAddNewSubCategory} className="bg-purple-600"><Check size={14} /></Button>
+                    </div>
+                )}
+              </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Planned Payment Source</Label>
+            <select 
+                className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm"
+                value={formData.source} 
+                onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+            >
+                <option value="Cash">Cash</option>
+                <option value="Online">Online / Digital</option>
+                <option value="Cheque">Cheque</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Description / Notes</Label>
+            <textarea
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="What is this future payment for?"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            />
+          </div>
+
+          <div className="pt-4 flex gap-3">
+            <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
+            <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={loading}>
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} 
+              Schedule Expense
+            </Button>
+          </div>
         </form>
       </div>
     </div>
