@@ -7,7 +7,8 @@ import {
   LogOut,
   Layers,
   Banknote,
-  ScrollText // New Icon for Activity
+  ScrollText,
+  CalendarClock  // New Icon for Activity
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,8 +22,7 @@ export default function Sidebar({ className, isCollapsed }) {
     { label: "Budgets", icon: Wallet, path: "/budgets" },
     { label: "Expenses", icon: Wallet, path: "/expenses" },
     { label: "Categories", icon: Layers, path: "/categories" },
-    // NEW ITEM ADDED HERE
-    { label: "Activity", icon: ScrollText, path: "/activity" }, 
+{ label: "Future Expenses", icon: CalendarClock, path: "/future-expenses" },    { label: "Activity", icon: ScrollText, path: "/activity" }, 
   ];
 
   return (

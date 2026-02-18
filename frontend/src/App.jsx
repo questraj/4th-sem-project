@@ -9,7 +9,8 @@ import Expenses from '@/pages/expenses/Expenses';
 import Categories from '@/pages/categories/Categories'; 
 import Profile from './pages/profile/Profile';
 import Income from '@/pages/income/Income'; 
-import ActivityLog from '@/pages/activity/ActivityLog'; // NEW IMPORT
+import ActivityLog from '@/pages/activity/ActivityLog'; 
+import FutureExpenses from '@/pages/future/FutureExpenses';
 
 const PrivateRoute = ({ children }) => {
   const { user } = useAuth();
@@ -34,6 +35,7 @@ function App() {
           
           {/* NEW ROUTE */}
           <Route path="/activity" element={<PrivateRoute><ActivityLog /></PrivateRoute>} />
+                    <Route path="/future-expenses" element={<PrivateRoute><FutureExpenses /></PrivateRoute>} />
           
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>

@@ -8,6 +8,7 @@ import {
 import api from "@/api/axios";
 import { Loader2, TrendingUp, Calendar } from "lucide-react";
 import FinancialReport from "@/components/analytics/FinancialReport";
+import BalanceSheet from "@/components/analytics/BalanceSheet";  
 
 export default function Analytics() {
   const [loading, setLoading] = useState(true);
@@ -54,7 +55,7 @@ export default function Analytics() {
     ? categoryData.reduce((prev, current) => (prev.amount > current.amount) ? prev : current)
     : { name: 'None', amount: 0 };
 
-  return (
+   return (
     <DashboardLayout>
       <div className="space-y-8 pb-10">
         <div>
@@ -62,33 +63,16 @@ export default function Analytics() {
           <p className="text-muted-foreground">Detailed insights into your spending habits</p>
         </div>
 
+        {/* 1. Health Report */}
         <div className="grid gap-6">
            <FinancialReport />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-           <Card className="bg-blue-50 border-blue-100">
-             <CardHeader className="flex flex-row items-center justify-between pb-2">
-               <CardTitle className="text-sm font-medium text-blue-900">Top Spending Category</CardTitle>
-               <TrendingUp className="h-4 w-4 text-blue-600" />
-             </CardHeader>
-             <CardContent>
-               <div className="text-2xl font-bold text-blue-700">{topCategory.name}</div>
-               <p className="text-xs text-blue-600/80 mt-1">NPR {topCategory.amount.toLocaleString()}</p>
-             </CardContent>
-           </Card>
-
-           <Card className="bg-purple-50 border-purple-100">
-             <CardHeader className="flex flex-row items-center justify-between pb-2">
-               <CardTitle className="text-sm font-medium text-purple-900">Data Points</CardTitle>
-               <Calendar className="h-4 w-4 text-purple-600" />
-             </CardHeader>
-             <CardContent>
-               <div className="text-2xl font-bold text-purple-700">{categoryData.length} Categories</div>
-               <p className="text-xs text-purple-600/80 mt-1">Active this month</p>
-             </CardContent>
-           </Card>
+        {/* 2. Balance Sheet (ADD THIS BELOW) */}
+        <div className="grid gap-6">
+           <BalanceSheet />
         </div>
+
 
         <div className="grid gap-6 md:grid-cols-2">
           <Card className="col-span-2 md:col-span-1">
