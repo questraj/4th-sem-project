@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Loader2, Check, Calendar } from "lucide-react";
+import { X, Loader2, Check, Calendar, Repeat } from "lucide-react"; // Added Repeat
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,17 +10,21 @@ export default function ScheduleExpenseModal({ isOpen, onClose, onSuccess }) {
   const [categories, setCategories] = useState([]);
   const [activeSubCategories, setActiveSubCategories] = useState([]);
   
-  // UI States for adding new items on the fly
+  // UI States
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isAddingSubCategory, setIsAddingSubCategory] = useState(false);
   const [newSubCategoryName, setNewSubCategoryName] = useState("");
 
+  // --- NEW: Recurring State ---
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [frequency, setFrequency] = useState("Monthly");
+
   const [formData, setFormData] = useState({
     amount: "",
     category_id: "", 
     sub_category_id: "", 
-    date: "", // Leave empty to force selection
+    date: "", 
     source: "Cash",
     description: ""
   });
@@ -28,10 +32,14 @@ export default function ScheduleExpenseModal({ isOpen, onClose, onSuccess }) {
   useEffect(() => {
     if (isOpen) {
         fetchCategories();
-        // Set default date to tomorrow
+        // Default date to tomorrow
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         setFormData(prev => ({ ...prev, date: tomorrow.toISOString().split('T')[0] }));
+        
+        // Reset Recurring
+        setIsRecurring(false);
+        setFrequency("Monthly");
     }
   }, [isOpen]);
 
@@ -89,27 +97,36 @@ export default function ScheduleExpenseModal({ isOpen, onClose, onSuccess }) {
         setActiveSubCategories(prev => [...prev, newSub]);
         setFormData(prev => ({...prev, sub_category_id: newSub.id}));
         setIsAddingSubCategory(false);
-        setNewSubNameInput("");
+        setNewSubCategoryName("");
       }
     } catch (error) { console.error(error); } finally { setLoading(false); }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Date Validation
     if (new Date(formData.date) <= new Date().setHours(0,0,0,0)) {
-        alert("Please select a future date for scheduling.");
+        alert("Please select a future date.");
         return;
     }
 
     setLoading(true);
     try {
-      const res = await api.post("/expense/addExpense.php", formData);
-      if (res.data.success) {
-        onSuccess();
-        onClose();
+      if (isRecurring) {
+        // --- 1. Call Add Recurring Endpoint ---
+        await api.post("/expense/addRecurring.php", {
+           ...formData,
+           start_date: formData.date,
+           frequency: frequency
+        });
       } else {
-        alert(res.data.message);
+        // --- 2. Call Standard Add Endpoint (which handles future logic internally) ---
+        await api.post("/expense/addExpense.php", formData);
       }
+
+      onSuccess();
+      onClose();
     } catch (error) {
       console.error("Scheduling failed", error);
     } finally {
@@ -122,7 +139,7 @@ export default function ScheduleExpenseModal({ isOpen, onClose, onSuccess }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 z-50 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 z-50 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto custom-scrollbar">
         
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold flex items-center gap-2">
@@ -133,6 +150,23 @@ export default function ScheduleExpenseModal({ isOpen, onClose, onSuccess }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           
+           {/* --- RECURRING TOGGLE --- */}
+           <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100 mb-4">
+                <div className="flex items-center gap-2">
+                    <Repeat className="text-blue-600 h-5 w-5" />
+                    <div>
+                        <p className="text-sm font-semibold text-gray-800">Recurring Schedule?</p>
+                        <p className="text-xs text-gray-500">Auto-generate this bill every cycle</p>
+                    </div>
+                </div>
+                <input 
+                    type="checkbox" 
+                    className="h-5 w-5 accent-blue-600 cursor-pointer"
+                    checked={isRecurring}
+                    onChange={(e) => setIsRecurring(e.target.checked)}
+                />
+           </div>
+
           <div className="space-y-2">
             <Label>Amount (NPR)</Label>
             <Input 
@@ -146,15 +180,32 @@ export default function ScheduleExpenseModal({ isOpen, onClose, onSuccess }) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Future Date</Label>
-            <Input 
-                type="date" 
-                required 
-                value={formData.date} 
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })} 
-                onClick={(e) => e.target.showPicker()} 
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <Label>{isRecurring ? "Start Date" : "Future Date"}</Label>
+                <Input 
+                    type="date" 
+                    required 
+                    value={formData.date} 
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })} 
+                    onClick={(e) => e.target.showPicker()} 
+                />
+            </div>
+
+            {isRecurring && (
+                  <div className="space-y-2 animate-in slide-in-from-left-2">
+                    <Label>Frequency</Label>
+                    <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={frequency}
+                        onChange={(e) => setFrequency(e.target.value)}
+                    >
+                        <option value="Weekly">Weekly</option>
+                        <option value="Monthly">Monthly</option>
+                        <option value="Yearly">Yearly</option>
+                    </select>
+                  </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -230,7 +281,7 @@ export default function ScheduleExpenseModal({ isOpen, onClose, onSuccess }) {
             <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
             <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={loading}>
               {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} 
-              Schedule Expense
+              {isRecurring ? "Set Recurring Schedule" : "Schedule Expense"}
             </Button>
           </div>
         </form>

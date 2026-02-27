@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Save, Loader2 } from "lucide-react";
+import { X, Save, Loader2, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,10 @@ import api from "@/api/axios";
 export default function EditFutureExpenseModal({ isOpen, onClose, onSuccess, expense }) {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
+  
+  // Recurring logic
+  const [makeRecurring, setMakeRecurring] = useState(false);
+  const [frequency, setFrequency] = useState("Monthly");
   
   const [formData, setFormData] = useState({
     amount: "",
@@ -31,6 +35,9 @@ export default function EditFutureExpenseModal({ isOpen, onClose, onSuccess, exp
                 date: expense.date,
                 description: expense.description || ""
             });
+            // Reset Recurring toggles
+            setMakeRecurring(false);
+            setFrequency("Monthly");
         }
     }
   }, [isOpen, expense]);
@@ -43,7 +50,10 @@ export default function EditFutureExpenseModal({ isOpen, onClose, onSuccess, exp
     try {
       await api.post("/expense/updateFutureExpense.php", {
         id: expense.id,
-        ...formData
+        ...formData,
+        // Send recurring data to backend
+        create_recurring_rule: makeRecurring,
+        frequency: frequency
       });
       onSuccess();
       onClose();
@@ -83,6 +93,41 @@ export default function EditFutureExpenseModal({ isOpen, onClose, onSuccess, exp
             <div className="space-y-2">
                 <Label>Scheduled Date</Label>
                 <Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} required />
+            </div>
+
+            {/* --- RECURRING CONVERSION UI --- */}
+            <div className="border border-blue-100 bg-blue-50 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Repeat className="h-4 w-4 text-blue-600" />
+                        <Label className="cursor-pointer" htmlFor="recurring-switch">Convert to Recurring?</Label>
+                    </div>
+                    <input 
+                        id="recurring-switch"
+                        type="checkbox" 
+                        className="h-4 w-4 accent-blue-600"
+                        checked={makeRecurring}
+                        onChange={(e) => setMakeRecurring(e.target.checked)}
+                    />
+                </div>
+                
+                {makeRecurring && (
+                    <div className="animate-in slide-in-from-top-2 pt-2">
+                        <Label className="text-xs text-gray-500 mb-1 block">Frequency</Label>
+                        <select 
+                            className="flex h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-xs"
+                            value={frequency}
+                            onChange={(e) => setFrequency(e.target.value)}
+                        >
+                            <option value="Weekly">Weekly</option>
+                            <option value="Monthly">Monthly</option>
+                            <option value="Yearly">Yearly</option>
+                        </select>
+                        <p className="text-[10px] text-gray-500 mt-1">
+                            This will create a new recurring rule starting from this date.
+                        </p>
+                    </div>
+                )}
             </div>
 
             <div className="space-y-2">

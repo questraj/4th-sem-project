@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { X, Loader2, Check, Upload, Image as ImageIcon } from "lucide-react";
+import { X, Loader2, Check, Upload, Image as ImageIcon, Repeat } from "lucide-react"; 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+// Removed Switch import
 
 import api from "@/api/axios";
 
@@ -17,6 +18,10 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
   const [isAddingSubCategory, setIsAddingSubCategory] = useState(false);
   const [newSubCategoryName, setNewSubCategoryName] = useState("");
 
+  // --- RECURRING STATE ---
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [frequency, setFrequency] = useState("Monthly");
+
   // Files State
   const [selectedFiles, setSelectedFiles] = useState([]);
 
@@ -30,7 +35,12 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
   });
 
   useEffect(() => {
-    if (isOpen) fetchCategories();
+    if (isOpen) {
+        fetchCategories();
+        // Reset Recurring state on open
+        setIsRecurring(false);
+        setFrequency("Monthly");
+    }
   }, [isOpen]);
 
   const fetchCategories = async () => {
@@ -108,28 +118,45 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
     if (e.target.files) setSelectedFiles(Array.from(e.target.files));
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const submitData = new FormData();
-      submitData.append('amount', formData.amount);
-      submitData.append('category_id', formData.category_id);
-      submitData.append('sub_category_id', formData.sub_category_id);
-      submitData.append('date', formData.date);
-      submitData.append('source', formData.source);
-      submitData.append('description', formData.description);
+      if (isRecurring) {
+        // --- RECURRING LOGIC ---
+        await api.post("/expense/addRecurring.php", {
+          amount: formData.amount,
+          category_id: formData.category_id,
+          sub_category_id: formData.sub_category_id,
+          start_date: formData.date, // User selected date becomes start date
+          frequency: frequency,
+          source: formData.source,
+          description: formData.description
+        });
+      } else {
+        // --- NORMAL LOGIC ---
+        const submitData = new FormData();
+        submitData.append('amount', formData.amount);
+        submitData.append('category_id', formData.category_id);
+        submitData.append('sub_category_id', formData.sub_category_id);
+        submitData.append('date', formData.date);
+        submitData.append('source', formData.source);
+        submitData.append('description', formData.description);
 
-      selectedFiles.forEach((file) => submitData.append('bills[]', file));
+        selectedFiles.forEach((file) => submitData.append('bills[]', file));
 
-      await api.post("/expense/addExpense.php", submitData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
+        await api.post("/expense/addExpense.php", submitData, {
+            headers: { "Content-Type": "multipart/form-data" }
+        });
+      }
 
       onSuccess();
       onClose();
+      // Reset form
       setFormData({ amount: "", category_id: "", sub_category_id: "", date: new Date().toISOString().split('T')[0], source: "Cash", description: "" });
       setSelectedFiles([]);
+      setIsRecurring(false);
     } catch (error) {
       console.error("Failed to add expense", error);
     } finally {
@@ -151,6 +178,25 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           
+           {/* --- RECURRING TOGGLE --- */}
+           <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100 mb-4">
+                <div className="flex items-center gap-2">
+                    <Repeat className="text-blue-600 h-5 w-5" />
+                    <div>
+                        <p className="text-sm font-semibold text-gray-800">Recurring Payment?</p>
+                        <p className="text-xs text-gray-500">e.g. Rent, Subscription, Salary</p>
+                    </div>
+                </div>
+                {/* Standard Checkbox */}
+                <input 
+                    type="checkbox" 
+                    className="h-5 w-5 accent-blue-600 cursor-pointer"
+                    checked={isRecurring}
+                    onChange={(e) => setIsRecurring(e.target.checked)}
+                />
+           </div>
+
+           {/* --- AMOUNT --- */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Amount (NPR)</Label>
             <Input 
@@ -164,20 +210,40 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Date</Label>
-            <Input 
-                type="date" 
-                required 
-                value={formData.date} 
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })} 
-                className="block w-full" 
-                onClick={(e) => e.target.showPicker()} 
-            />
+          {/* --- CONDITIONAL DATE / FREQUENCY --- */}
+          <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">
+                    {isRecurring ? "Start Date" : "Date"}
+                </Label>
+                <Input 
+                    type="date" 
+                    required 
+                    value={formData.date} 
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })} 
+                    className="block w-full" 
+                    onClick={(e) => e.target.showPicker()} 
+                />
+              </div>
+
+              {isRecurring && (
+                  <div className="space-y-2 animate-in slide-in-from-left-2">
+                    <Label className="text-sm font-medium text-gray-700">Frequency</Label>
+                    <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        value={frequency}
+                        onChange={(e) => setFrequency(e.target.value)}
+                    >
+                        <option value="Weekly">Weekly</option>
+                        <option value="Monthly">Monthly</option>
+                        <option value="Yearly">Yearly</option>
+                    </select>
+                  </div>
+              )}
           </div>
 
+          {/* --- CATEGORIES --- */}
           <div className="grid grid-cols-2 gap-4">
-              {/* Category */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-700">Category</Label>
                 {!isAddingCategory ? (
@@ -199,7 +265,6 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
                 )}
               </div>
 
-              {/* Sub-Category */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-700">Sub Category</Label>
                 {!isAddingSubCategory ? (
@@ -236,32 +301,35 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
             </select>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Receipt / Bill Photos</Label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
-                <Input 
-                    type="file" 
-                    multiple 
-                    accept="image/*" 
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                    onChange={handleFileChange} 
-                />
-                <div className="flex flex-col items-center gap-2 text-gray-500">
-                    <Upload className="h-6 w-6 text-gray-400" />
-                    <span className="text-xs">Click to upload photos</span>
+          {/* Hide file upload for recurring templates */}
+          {!isRecurring && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Receipt / Bill Photos</Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
+                    <Input 
+                        type="file" 
+                        multiple 
+                        accept="image/*" 
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                        onChange={handleFileChange} 
+                    />
+                    <div className="flex flex-col items-center gap-2 text-gray-500">
+                        <Upload className="h-6 w-6 text-gray-400" />
+                        <span className="text-xs">Click to upload photos</span>
+                    </div>
                 </div>
-            </div>
-            {selectedFiles.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedFiles.map((file, idx) => (
-                        <div key={idx} className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs border border-blue-100">
-                            <ImageIcon size={12} />
-                            <span className="max-w-[200px] truncate">{file.name}</span>
-                        </div>
-                    ))}
-                </div>
-            )}
-          </div>
+                {selectedFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        {selectedFiles.map((file, idx) => (
+                            <div key={idx} className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs border border-blue-100">
+                                <ImageIcon size={12} />
+                                <span className="max-w-[200px] truncate">{file.name}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+              </div>
+          )}
 
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Description</Label>
@@ -276,7 +344,8 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
           <div className="pt-4 flex gap-3">
             <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
             <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Expense
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} 
+              {isRecurring ? "Set Recurring" : "Save Expense"}
             </Button>
           </div>
         </form>

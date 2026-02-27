@@ -45,9 +45,14 @@ const Dashboard = () => {
 
   const fetchData = useCallback(async () => {
     try {
+      // 1. AUTOMATION: Trigger Recurring Expense Processor
+      await api.post('/expense/processRecurring.php');
+
+      // 2. Fetch Budget
       const budgetRes = await api.get(`/budget/getBudget.php?type=${period}`);
       const budgetAmount = parseFloat(budgetRes.data.data?.amount || 0);
       
+      // 3. Fetch Analytics
       const analyticsRes = await api.get(`/analytics/getExpenseSummary.php?period=${period}&month=${selectedMonth}&year=${selectedYear}`);
       
       let categories = [];
@@ -61,14 +66,17 @@ const Dashboard = () => {
         }));
       }
 
+      // 4. Fetch Recent Transactions
       const txnRes = await api.get('/expense/getRecentExpenses.php');
       if (txnRes.data.status) { setRecentTxns(txnRes.data.data); }
 
+      // 5. Fetch Category Budgets
       try {
         const catBudgetRes = await api.get('/budget/getCategoryBudgets.php');
         if (catBudgetRes.data.success) { setCategoryBudgets(catBudgetRes.data.data); }
       } catch (e) { console.warn("Category budgets fetch failed", e); }
 
+      // 6. Fetch Due Expenses (Includes newly generated recurring items)
       try {
         const dueRes = await api.get('/expense/getDueExpenses.php');
         if (dueRes.data.success) { setDueExpenses(dueRes.data.data); }
@@ -88,9 +96,10 @@ const Dashboard = () => {
   }, [period, selectedMonth, selectedYear]);
 
   useEffect(() => {
-    // Wrap in an async function to satisfy linter and explicit intent
-    const load = async () => { await fetchData(); };
-    load();
+    const initDashboard = async () => {
+      await fetchData();
+    };
+    initDashboard();
   }, [fetchData]);
 
   const handleDueSuccess = () => {
@@ -117,6 +126,7 @@ const Dashboard = () => {
                 </div>
                 
                 <div className="flex flex-wrap gap-2 sm:gap-3">
+                    {/* 1. Main Budget Button */}
                     <Button 
                         variant="outline" 
                         onClick={() => setIsBudgetModalOpen(true)} 
@@ -128,7 +138,17 @@ const Dashboard = () => {
                             <><Wallet className="mr-2 h-4 w-4" /> Set {period} Budget</>
                         )}
                     </Button>
+
+                    {/* 2. Category Limit Button */}
+                    <Button 
+                        variant="outline"
+                        onClick={() => setIsCatBudgetModalOpen(true)}
+                        className="border-gray-200 text-gray-700 hover:bg-gray-50 bg-white shadow-sm"
+                    >
+                        <TrendingDown className="mr-2 h-4 w-4" /> Category Limit
+                    </Button>
                     
+                    {/* 3. Add Expense Button */}
                     <Button 
                         onClick={() => setIsExpenseModalOpen(true)} 
                         className="bg-blue-600 hover:bg-blue-700 shadow-sm"
@@ -138,7 +158,7 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* --- PRETTIER FILTERS BAR --- */}
+            {/* --- FILTERS BAR --- */}
             <div className="flex flex-wrap items-center gap-3 p-1">
                 
                 {/* 1. View Type Selector */}
@@ -229,7 +249,6 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">NPR {stats.totalExpense.toLocaleString()}</div>
-              {/* Fixed CSS conflict: removed 'text-muted-foreground' */}
               <p className="text-xs mt-1 font-medium text-blue-600/80">
                   {period === 'Monthly' && `${MONTHS[selectedMonth-1].label} ${selectedYear}`}
                   {period === 'Yearly' && `Year ${selectedYear}`}
@@ -344,6 +363,7 @@ const Dashboard = () => {
         onSuccess={fetchData} 
       />
 
+      {/* Due Expense Modal (Auto-popup for recurring or future expenses) */}
       {dueExpenses.length > 0 && currentDueIndex < dueExpenses.length && (
          <DueExpenseModal 
             isOpen={true}

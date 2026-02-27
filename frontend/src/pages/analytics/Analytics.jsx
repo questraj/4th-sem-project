@@ -63,16 +63,16 @@ export default function Analytics() {
           <p className="text-muted-foreground">Detailed insights into your spending habits</p>
         </div>
 
-        {/* 1. Health Report */}
-        <div className="grid gap-6">
-           <FinancialReport />
-        </div>
-
         {/* 2. Balance Sheet (ADD THIS BELOW) */}
         <div className="grid gap-6">
            <BalanceSheet />
         </div>
 
+
+        {/* 1. Health Report */}
+        <div className="grid gap-6">
+           <FinancialReport />
+        </div>
 
         <div className="grid gap-6 md:grid-cols-2">
           <Card className="col-span-2 md:col-span-1">
