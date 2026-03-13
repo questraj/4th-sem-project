@@ -48,8 +48,8 @@ const Dashboard = () => {
       // 1. AUTOMATION: Trigger Recurring Expense Processor
       await api.post('/expense/processRecurring.php');
 
-      // 2. Fetch Budget
-      const budgetRes = await api.get(`/budget/getBudget.php?type=${period}`);
+      // 2. Fetch Budget (Now passing month and year for specific monthly budgets)
+      const budgetRes = await api.get(`/budget/getBudget.php?type=${period}&month=${selectedMonth}&year=${selectedYear}`);
       const budgetAmount = parseFloat(budgetRes.data.data?.amount || 0);
       
       // 3. Fetch Analytics
@@ -346,9 +346,11 @@ const Dashboard = () => {
       <AddBudgetModal 
         isOpen={isBudgetModalOpen} 
         onClose={() => setIsBudgetModalOpen(false)} 
-        onSuccess={fetchData}
+        onSuccess={() => window.location.reload()} // <--- CHANGED THIS LINE
         currentAmount={stats.budget}
         currentType={period}
+        month={selectedMonth}
+        year={selectedYear}
       />
 
       <AddExpenseModal 

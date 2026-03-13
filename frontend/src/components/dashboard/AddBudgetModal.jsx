@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { X, Loader2, AlertCircle } from "lucide-react"; // Added AlertCircle icon
+import { X, Loader2, AlertCircle } from "lucide-react"; 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import api from "@/api/axios";
 
-export default function AddBudgetModal({ isOpen, onClose, onSuccess, currentAmount, currentType }) {
+export default function AddBudgetModal({ isOpen, onClose, onSuccess, currentAmount, currentType, month, year }) {
   const [loading, setLoading] = useState(false);
   const [amount, setAmount] = useState("");
   const [type, setType] = useState("Monthly");
@@ -35,13 +35,17 @@ export default function AddBudgetModal({ isOpen, onClose, onSuccess, currentAmou
     try {
       const res = await api.post("/budget/setbudget.php", { 
         amount: amount,
-        type: type 
+        type: type,
+        month: month, // Pass the selected month from the dashboard
+        year: year    // Pass the selected year from the dashboard
       });
       
       // Check success flag from backend
       if (res.data.success) {
         onSuccess();
         onClose();
+        // FORCE PAGE REFRESH HERE
+        window.location.reload();
       } else {
         setError(res.data.message);
       }
