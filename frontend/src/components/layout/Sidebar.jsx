@@ -8,22 +8,29 @@ import {
   Layers,
   Banknote,
   ScrollText,
-  CalendarClock  // New Icon for Activity
+  CalendarClock,
+  Users // Added for Parent Icon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Sidebar({ className, isCollapsed }) {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth(); // Destructure user to get role
 
-  const navItems = [
-    { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
-    { label: "Analytics", icon: PieChart, path: "/analytics" },
-    { label: "Income", icon: Banknote, path: "/income" },
-    { label: "Budgets", icon: Wallet, path: "/budgets" },
-    { label: "Expenses", icon: Wallet, path: "/expenses" },
-    { label: "Categories", icon: Layers, path: "/categories" },
-{ label: "Future Expenses", icon: CalendarClock, path: "/future-expenses" },    { label: "Activity", icon: ScrollText, path: "/activity" }, 
+  // ALL Nav Items
+  const allNavItems = [
+    { label: "Dashboard", icon: user?.role === 'parent' ? Users : LayoutDashboard, path: "/dashboard", roles: ['student', 'parent'] },
+    { label: "Analytics", icon: PieChart, path: "/analytics", roles: ['student'] },
+    { label: "Income", icon: Banknote, path: "/income", roles: ['student'] },
+    { label: "Budgets", icon: Wallet, path: "/budgets", roles: ['student'] },
+    { label: "Expenses", icon: Wallet, path: "/expenses", roles: ['student'] },
+    { label: "Categories", icon: Layers, path: "/categories", roles: ['student'] },
+    { label: "Future Expenses", icon: CalendarClock, path: "/future-expenses", roles: ['student'] },
+    // CHANGED: Removed 'parent' from the roles array for Activity
+    { label: "Activity", icon: ScrollText, path: "/activity", roles: ['student'] }, 
   ];
+
+  // Filter items based on the logged-in user's role
+  const navItems = allNavItems.filter(item => item.roles.includes(user?.role || 'student'));
 
   return (
     <aside 
@@ -37,7 +44,9 @@ export default function Sidebar({ className, isCollapsed }) {
         "h-16 flex items-center border-b border-gray-100",
         isCollapsed ? "justify-center px-0" : "px-6 gap-3"
       )}>
-        <div className="h-8 w-8 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-lg shrink-0 shadow-sm"></div>
+        <div className="h-8 w-8 bg-linear-to-tr from-blue-600 to-blue-400 rounded-lg shrink-0 shadow-sm flex items-center justify-center text-white font-bold text-xs">
+            {user?.role === 'parent' ? 'FAM' : 'STU'}
+        </div>
         <div className={cn(
           "font-bold text-lg tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300",
           isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"

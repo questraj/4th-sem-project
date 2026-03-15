@@ -9,7 +9,7 @@ import EditFutureExpenseModal from "@/components/dashboard/EditFutureExpenseModa
 import ProcessFutureExpenseModal from "@/components/dashboard/ProcessFutureExpenseModal";
 
 export default function FutureExpenses() {
-  const [pending, setPending] = useState([]); // Initialized as array to prevent .map error
+  const [pending, setPending] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // Modal states
@@ -17,6 +17,10 @@ export default function FutureExpenses() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isProcessOpen, setIsProcessOpen] = useState(false);
   const [selected, setSelected] = useState(null);
+
+  // Get today's date in YYYY-MM-DD format (local timezone safe)
+  const today = new Date();
+  const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
   const fetchPending = async () => {
     try {
@@ -60,35 +64,45 @@ export default function FutureExpenses() {
             <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-600" /></div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {pending.map((item) => (
-              <Card key={item.id} className="border-l-4 border-l-blue-500 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">{item.date}</span>
-                    <span className="font-bold">NPR {parseFloat(item.amount).toLocaleString()}</span>
-                  </div>
-                  <h3 className="font-semibold text-gray-800">{item.category_name}</h3>
-                  <p className="text-sm text-gray-500 mb-4 h-10 line-clamp-2">{item.description || "No description"}</p>
-                  
-                  <div className="flex gap-2 border-t pt-3">
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1 text-green-600 border-green-100 hover:bg-green-50" 
-                        onClick={() => { setSelected(item); setIsProcessOpen(true); }}
-                    >
-                        <CheckCircle size={14} className="mr-1"/> Process
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => { setSelected(item); setIsEditOpen(true); }}>
-                        <Pencil size={14}/>
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50" onClick={() => handleDelete(item.id)}>
-                        <Trash2 size={14}/>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {pending.map((item) => {
+              // Check if the item's date is today or in the past
+              const isProcessable = item.date <= todayString;
+
+              return (
+                <Card key={item.id} className="border-l-4 border-l-blue-500 shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">{item.date}</span>
+                      <span className="font-bold">NPR {parseFloat(item.amount).toLocaleString()}</span>
+                    </div>
+                    <h3 className="font-semibold text-gray-800">{item.category_name}</h3>
+                    <p className="text-sm text-gray-500 mb-4 h-10 line-clamp-2">{item.description || "No description"}</p>
+                    
+                    <div className="flex gap-2 border-t pt-3">
+                      {/* Process Button - Disabled if date is in the future */}
+                      <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className={`flex-1 border-green-100 ${isProcessable ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 bg-gray-50'}`} 
+                          onClick={() => { setSelected(item); setIsProcessOpen(true); }}
+                          disabled={!isProcessable}
+                          title={!isProcessable ? "Cannot process before scheduled date" : "Process Expense"}
+                      >
+                          <CheckCircle size={14} className="mr-1"/> Process
+                      </Button>
+
+                      <Button variant="ghost" size="sm" onClick={() => { setSelected(item); setIsEditOpen(true); }}>
+                          <Pencil size={14}/>
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50" onClick={() => handleDelete(item.id)}>
+                          <Trash2 size={14}/>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+            
             {pending.length === 0 && (
                 <div className="col-span-full text-center py-20 bg-gray-50 rounded-xl border-2 border-dashed">
                     <CalendarClock className="mx-auto h-12 w-12 text-gray-300 mb-2" />
@@ -105,7 +119,6 @@ export default function FutureExpenses() {
             onSuccess={fetchPending} 
         />
 
-        {/* Only render Edit/Process modals if 'selected' is not null to avoid white screen crashes */}
         {selected && (
             <>
                 <EditFutureExpenseModal 
