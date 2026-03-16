@@ -9,27 +9,27 @@ import {
   Banknote,
   ScrollText,
   CalendarClock,
-  Users // Added for Parent Icon
+  Users,
+  ShieldCheck 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Sidebar({ className, isCollapsed }) {
-  const { logout, user } = useAuth(); // Destructure user to get role
+  const { logout, user } = useAuth(); 
 
-  // ALL Nav Items
+  // Define routes and who is allowed to see them
   const allNavItems = [
-    { label: "Dashboard", icon: user?.role === 'parent' ? Users : LayoutDashboard, path: "/dashboard", roles: ['student', 'parent'] },
+    { label: "Overview", icon: user?.role === 'parent' ? Users : LayoutDashboard, path: "/dashboard", roles: ['student', 'parent', 'admin'] },
+    { label: "Manage Users", icon: ShieldCheck, path: "/admin/users", roles: ['admin'] },
     { label: "Analytics", icon: PieChart, path: "/analytics", roles: ['student'] },
     { label: "Income", icon: Banknote, path: "/income", roles: ['student'] },
     { label: "Budgets", icon: Wallet, path: "/budgets", roles: ['student'] },
     { label: "Expenses", icon: Wallet, path: "/expenses", roles: ['student'] },
     { label: "Categories", icon: Layers, path: "/categories", roles: ['student'] },
     { label: "Future Expenses", icon: CalendarClock, path: "/future-expenses", roles: ['student'] },
-    // CHANGED: Removed 'parent' from the roles array for Activity
     { label: "Activity", icon: ScrollText, path: "/activity", roles: ['student'] }, 
   ];
 
-  // Filter items based on the logged-in user's role
   const navItems = allNavItems.filter(item => item.roles.includes(user?.role || 'student'));
 
   return (
@@ -44,8 +44,8 @@ export default function Sidebar({ className, isCollapsed }) {
         "h-16 flex items-center border-b border-gray-100",
         isCollapsed ? "justify-center px-0" : "px-6 gap-3"
       )}>
-        <div className="h-8 w-8 bg-linear-to-tr from-blue-600 to-blue-400 rounded-lg shrink-0 shadow-sm flex items-center justify-center text-white font-bold text-xs">
-            {user?.role === 'parent' ? 'FAM' : 'STU'}
+        <div className={`h-8 w-8 rounded-lg shrink-0 shadow-sm flex items-center justify-center text-white font-bold text-xs ${user?.role === 'admin' ? 'bg-gradient-to-tr from-gray-900 to-gray-700' : 'bg-gradient-to-tr from-blue-600 to-blue-400'}`}>
+            {user?.role === 'admin' ? 'ADM' : user?.role === 'parent' ? 'FAM' : 'STU'}
         </div>
         <div className={cn(
           "font-bold text-lg tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300",

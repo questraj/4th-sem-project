@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Link as LinkIcon, Mail, Loader2, ArrowRight, ArrowLeft, Filter, ChevronDown, List } from "lucide-react";
+import { Link as LinkIcon, Loader2, ArrowRight, ArrowLeft, Filter, List, Unlink } from "lucide-react";
 import api from "@/api/axios";
 import LinkStudentModal from "./LinkStudentModal";
 import CategoryBreakdown from "./CategoryBreakdown";
@@ -40,7 +40,6 @@ export default function ParentDashboard() {
 
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
 
-  // Unified fetch function for student details so it reacts to filter changes
   const fetchStudentDetails = useCallback(async (studentId) => {
     setIsDetailLoading(true);
     try {
@@ -53,20 +52,35 @@ export default function ParentDashboard() {
     }
   }, [period, selectedMonth, selectedYear]);
 
-  // Initial trigger when a student is clicked
   const handleViewFinances = (stu) => {
     setSelectedStudent(stu);
     fetchStudentDetails(stu.id);
   };
 
-  // Trigger when filters change, but ONLY if a student is already selected
+  // UNLINK STUDENT HANDLER
+  const handleUnlink = async (studentId, studentName) => {
+    if (!window.confirm(`Are you sure you want to unlink ${studentName}? You will lose access to their financial data.`)) return;
+    
+    try {
+      const res = await api.post('/family/unlinkStudent.php', { student_id: studentId });
+      if (res.data.success) {
+        fetchStudents(); // Refresh the list
+      } else {
+        alert(res.data.message);
+      }
+    } catch (error) {
+      console.error("Failed to unlink", error);
+      alert("Failed to unlink student due to server error.");
+    }
+  };
+
   useEffect(() => {
     if (selectedStudent) {
         fetchStudentDetails(selectedStudent.id);
     }
   }, [period, selectedMonth, selectedYear, fetchStudentDetails]);
 
-
+  // STUDENT DRILL-DOWN VIEW
   if (selectedStudent && studentDetail) {
     const isOverBudget = studentDetail.stats.budget > 0 && studentDetail.stats.totalSpent > studentDetail.stats.budget;
 
@@ -116,7 +130,6 @@ export default function ParentDashboard() {
             <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-blue-600 h-8 w-8" /></div>
         ) : (
             <>
-                {/* Stats Cards */}
                 <div className="grid gap-4 md:grid-cols-3">
                     <Card className="border-l-4 border-l-gray-800 shadow-sm">
                         <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-gray-500">Total Spent</CardTitle></CardHeader>
@@ -140,7 +153,6 @@ export default function ParentDashboard() {
                     </Card>
                 </div>
 
-                {/* Categories & Table Grid */}
                 <div className="grid gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-1">
                         <CategoryBreakdown categories={studentDetail.categories.map(c => ({ name: c.name, value: parseFloat(c.value) }))} categoryBudgets={{}} />
@@ -194,34 +206,61 @@ export default function ParentDashboard() {
     );
   }
 
+  // MAIN PARENT DASHBOARD
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Family Overview</h1>
-        <Button onClick={() => setIsLinkModalOpen(true)} className="bg-blue-600"><LinkIcon className="mr-2 h-4 w-4" /> Link Student</Button>
+        <Button onClick={() => setIsLinkModalOpen(true)} className="bg-blue-600">
+            <LinkIcon className="mr-2 h-4 w-4" /> Link Student
+        </Button>
       </div>
 
       {isLoading ? <Loader2 className="animate-spin mx-auto h-8 w-8 text-blue-600 mt-20" /> : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {linkedStudents.map((stu) => (
-            <Card key={stu.id} className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="h-12 w-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">{stu.first_name.charAt(0)}</div>
-                  <div>
-                    <h3 className="font-bold">{stu.first_name} {stu.last_name}</h3>
-                    <p className="text-xs text-gray-500">{stu.email}</p>
+          {linkedStudents.length === 0 ? (
+            <div className="col-span-full py-16 text-center bg-white border border-dashed rounded-xl text-gray-400">
+                You have not linked any students yet. Click "Link Student" above.
+            </div>
+          ) : (
+            linkedStudents.map((stu) => (
+              <Card key={stu.id} className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow relative">
+                <CardContent className="pt-6">
+                  {/* Top row: Info + Unlink button */}
+                  <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
+                            {stu.first_name.charAt(0)}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-900">{stu.first_name} {stu.last_name}</h3>
+                          <p className="text-xs text-gray-500">{stu.email}</p>
+                        </div>
+                      </div>
+                      
+                      {/* UNLINK BUTTON */}
+                      <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleUnlink(stu.id, stu.first_name)} 
+                          className="text-gray-400 hover:text-red-600 hover:bg-red-50 -mt-2 -mr-2"
+                          title="Unlink Student"
+                      >
+                          <Unlink size={16} />
+                      </Button>
                   </div>
-                </div>
-                <Button onClick={() => handleViewFinances(stu)} variant="outline" className="w-full">
-                  {isDetailLoading && selectedStudent?.id === stu.id ? <Loader2 className="animate-spin h-4 w-4" /> : "View Finances"}
-                  <ArrowRight size={14} className="ml-2" />
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+
+                  <Button onClick={() => handleViewFinances(stu)} variant="outline" className="w-full text-blue-600 border-blue-200 hover:bg-blue-50">
+                    {isDetailLoading && selectedStudent?.id === stu.id ? <Loader2 className="animate-spin h-4 w-4" /> : "View Finances"}
+                    <ArrowRight size={14} className="ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       )}
+      
       <LinkStudentModal isOpen={isLinkModalOpen} onClose={() => setIsLinkModalOpen(false)} onSuccess={fetchStudents} />
     </div>
   );

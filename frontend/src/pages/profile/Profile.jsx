@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Lock, Save, Loader2, CreditCard, Pencil, X, Activity } from "lucide-react";
+import { User, Lock, Save, Loader2, CreditCard, Pencil, X, Activity, Users, Link as LinkIcon, Unlink } from "lucide-react";
 import api from "@/api/axios";
 
 export default function Profile() {
@@ -14,7 +14,7 @@ export default function Profile() {
 
   // Profile Data
   const [formData, setFormData] = useState({
-    first_name: "", middle_name: "", last_name: "", email: "", bank_name: "", bank_account_no: ""
+    first_name: "", middle_name: "", last_name: "", email: "", role: "", bank_name: "", bank_account_no: "", family_links: []
   });
   const [originalData, setOriginalData] = useState({});
   const [passData, setPassData] = useState({ current_password: "", new_password: "", confirm_password: "" });
@@ -89,7 +89,7 @@ export default function Profile() {
         <Label className="text-gray-500 text-xs uppercase font-bold tracking-wider">{label}</Label>
         {isEditing ? (
             <Input 
-                value={formData[key]} 
+                value={formData[key] || ""} 
                 onChange={e => setFormData({...formData, [key]: e.target.value})} 
                 placeholder={placeholder}
                 className="mt-1"
@@ -104,8 +104,58 @@ export default function Profile() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6 pb-10">
         <h1 className="text-3xl font-bold text-gray-900">Account Settings</h1>
+
+        {/* FAMILY CONNECTION CARD (Only visible for students) */}
+        {formData.role === 'student' && (
+            <Card className="border-l-4 border-l-purple-500 shadow-sm">
+                <CardHeader className="pb-3 bg-purple-50/30">
+                    <CardTitle className="flex items-center gap-2 text-lg text-purple-800">
+                        <Users className="h-5 w-5"/> Family Connection
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                    {formData.family_links && formData.family_links.length > 0 ? (
+                        <div className="space-y-3">
+                            {formData.family_links.map((link, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-bold">
+                                            {link.first_name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-gray-900 flex items-center gap-2">
+                                                {link.first_name} {link.last_name}
+                                                <LinkIcon size={14} className="text-gray-400"/>
+                                            </p>
+                                            <p className="text-sm text-gray-500">{link.email} • Parent</p>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        {link.status === 'ACTIVE' ? (
+                                            <span className="bg-green-100 text-green-700 px-3 py-1 text-xs font-bold uppercase rounded-full border border-green-200">
+                                                Active Link
+                                            </span>
+                                        ) : (
+                                            <span className="bg-yellow-100 text-yellow-700 px-3 py-1 text-xs font-bold uppercase rounded-full border border-yellow-200">
+                                                Pending Request
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center p-6 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                            <Unlink className="h-8 w-8 text-gray-300 mb-2" />
+                            <p className="text-gray-500 font-medium">Not Linked to any Family</p>
+                            <p className="text-xs text-gray-400 mt-1">Ask your parent to send a link request using your email address.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        )}
 
         <div className="grid gap-6 md:grid-cols-2">
             
@@ -198,7 +248,7 @@ export default function Profile() {
             </Card>
         </div>
 
-        {/* 3. SYSTEM ACTIVITY LOG (NEW) */}
+        {/* 3. SYSTEM ACTIVITY LOG */}
         <Card className="mt-6">
            <CardHeader className="border-b pb-4">
                <CardTitle className="flex items-center gap-2 text-lg">
