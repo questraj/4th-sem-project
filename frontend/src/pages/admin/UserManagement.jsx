@@ -14,7 +14,7 @@ export default function UserManagement() {
   // User Actions Modal State
   const [editUser, setEditUser] = useState(null);
   const [resetPassUser, setResetPassUser] = useState(null);
-  const [newPassword, setNewPassword] = useState("");
+  const [resettingPass, setResettingPass] = useState(false); // New loading state for resetting
   
   // View Individual Expenses State
   const [viewExpensesUser, setViewExpensesUser] = useState(null);
@@ -52,17 +52,22 @@ export default function UserManagement() {
     } catch (error) { console.error(error); }
   };
 
+  // --- UPDATED: No longer sends a manual password. Just the user ID. ---
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    if (newPassword.length < 6) return alert("Password must be at least 6 characters.");
+    setResettingPass(true);
     try {
-      const res = await api.post("/admin/resetPassword.php", { id: resetPassUser.id, new_password: newPassword });
+      const res = await api.post("/admin/resetPassword.php", { id: resetPassUser.id });
       if(res.data.success) {
           setResetPassUser(null);
-          setNewPassword("");
-          alert("Password reset successfully!");
+          alert("Success! A new random password has been emailed to the user.");
       } else alert(res.data.message);
-    } catch (error) { console.error(error); }
+    } catch (error) { 
+        console.error(error); 
+        alert("An error occurred while resetting the password.");
+    } finally {
+        setResettingPass(false);
+    }
   };
 
   const openExpensesModal = async (user) => {
@@ -100,7 +105,7 @@ export default function UserManagement() {
                       <th className="px-6 py-4 font-semibold">Name</th>
                       <th className="px-6 py-4 font-semibold">Email</th>
                       <th className="px-6 py-4 font-semibold">Role</th>
-                      <th className="px-6 py-4 font-semibold">Linked Parent</th> {/* NEW COLUMN */}
+                      <th className="px-6 py-4 font-semibold">Linked Parent</th>
                       <th className="px-6 py-4 font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
@@ -115,7 +120,6 @@ export default function UserManagement() {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          {/* LOGIC TO SHOW PARENT NAME */}
                           {u.role === 'student' ? (
                              u.parent_name ? (
                                <div className="flex items-center gap-1.5 text-gray-800 font-medium">
@@ -182,20 +186,34 @@ export default function UserManagement() {
           </div>
         )}
 
-        {/* MODAL: Reset Password */}
+        {/* --- UPDATED MODAL: Reset Password (Auto Generate) --- */}
         {resetPassUser && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setResetPassUser(null)} />
             <div className="relative bg-white rounded-xl shadow-lg w-full max-w-sm p-6 z-50">
+              
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold">Reset Password</h2>
+                <h2 className="text-lg font-bold">Auto-Reset Password</h2>
                 <button onClick={() => setResetPassUser(null)}><X size={20}/></button>
               </div>
-              <p className="text-sm text-gray-500 mb-4">Set a new password for <b>{resetPassUser.email}</b></p>
+              
+              <p className="text-sm text-gray-500 mb-4">
+                Are you sure you want to reset the password for <b>{resetPassUser.email}</b>?
+              </p>
+
+              <div className="bg-orange-50 border border-orange-100 p-3 rounded-lg mb-6">
+                 <p className="text-xs text-orange-800 font-medium">
+                    A secure, random 10-character password will be generated and emailed directly to the user.
+                 </p>
+              </div>
+
               <form onSubmit={handleResetPassword} className="space-y-4">
-                <div><Label>New Password</Label><Input type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={6} /></div>
-                <Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700 text-white">Update Password</Button>
+                <Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700 text-white" disabled={resettingPass}>
+                    {resettingPass ? <Loader2 className="animate-spin mr-2" /> : <KeyRound size={16} className="mr-2" />}
+                    Generate & Email Password
+                </Button>
               </form>
+
             </div>
           </div>
         )}

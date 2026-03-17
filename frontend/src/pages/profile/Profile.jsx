@@ -84,6 +84,23 @@ export default function Profile() {
     } catch (e) { alert("Error changing password"); } finally { setPassLoading(false); }
   };
 
+  // --- NEW: Handle Unlinking a Parent ---
+  const handleUnlinkParent = async (parentId, parentName) => {
+    if (!window.confirm(`Are you sure you want to unlink ${parentName}? They will lose access to your financial data.`)) return;
+
+    try {
+        const res = await api.post("/family/unlinkParent.php", { parent_id: parentId });
+        if (res.data.success) {
+            fetchProfile(); // Refresh the profile to remove the parent from the UI
+        } else {
+            alert(res.data.message);
+        }
+    } catch (error) {
+        console.error("Failed to unlink parent", error);
+        alert("An error occurred while unlinking.");
+    }
+  };
+
   const renderField = (label, key, placeholder = "") => (
     <div>
         <Label className="text-gray-500 text-xs uppercase font-bold tracking-wider">{label}</Label>
@@ -107,7 +124,7 @@ export default function Profile() {
       <div className="max-w-5xl mx-auto space-y-6 pb-10">
         <h1 className="text-3xl font-bold text-gray-900">Account Settings</h1>
 
-        {/* FAMILY CONNECTION CARD (Only visible for students) */}
+        {/* FAMILY CONNECTION CARD */}
         {formData.role === 'student' && (
             <Card className="border-l-4 border-l-purple-500 shadow-sm">
                 <CardHeader className="pb-3 bg-purple-50/30">
@@ -119,7 +136,7 @@ export default function Profile() {
                     {formData.family_links && formData.family_links.length > 0 ? (
                         <div className="space-y-3">
                             {formData.family_links.map((link, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+                                <div key={idx} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                                     <div className="flex items-center gap-3">
                                         <div className="h-10 w-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-bold">
                                             {link.first_name.charAt(0)}
@@ -132,7 +149,7 @@ export default function Profile() {
                                             <p className="text-sm text-gray-500">{link.email} • Parent</p>
                                         </div>
                                     </div>
-                                    <div>
+                                    <div className="flex items-center gap-3">
                                         {link.status === 'ACTIVE' ? (
                                             <span className="bg-green-100 text-green-700 px-3 py-1 text-xs font-bold uppercase rounded-full border border-green-200">
                                                 Active Link
@@ -142,6 +159,17 @@ export default function Profile() {
                                                 Pending Request
                                             </span>
                                         )}
+                                        
+                                        {/* --- NEW: UNLINK BUTTON --- */}
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            onClick={() => handleUnlinkParent(link.parent_id, link.first_name)}
+                                            className="text-gray-400 hover:text-red-600 hover:bg-red-50"
+                                            title="Unlink Parent"
+                                        >
+                                            <Unlink size={18} />
+                                        </Button>
                                     </div>
                                 </div>
                             ))}
